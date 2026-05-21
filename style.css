@@ -14,7 +14,12 @@
   --border: #e0e1e6;
   --shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   --shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.1);
+  --fs-scale: 1;
 }
+body.font-s { --fs-scale: 0.85; }
+body.font-m { --fs-scale: 1; }
+body.font-l { --fs-scale: 1.18; }
+body.font-xl { --fs-scale: 1.38; }
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
@@ -260,22 +265,22 @@ button.danger:hover { background: var(--bad); color: white; }
 }
 
 .hanzi {
-  font-size: 72px;
+  font-size: calc(72px * var(--fs-scale));
   font-weight: 500;
   margin: 16px 0 12px;
   font-family: 'Noto Sans CJK SC', 'Noto Sans SC', 'Microsoft YaHei', '微软雅黑', sans-serif;
   letter-spacing: 4px;
   word-break: break-all;
 }
-.flashcard .hanzi { font-size: 80px; }
+.flashcard .hanzi { font-size: calc(80px * var(--fs-scale)); }
 .pinyin {
-  font-size: 22px;
+  font-size: calc(22px * var(--fs-scale));
   color: var(--secondary);
   margin-bottom: 16px;
   font-style: italic;
 }
 .meaning {
-  font-size: 18px;
+  font-size: calc(18px * var(--fs-scale));
   color: var(--text);
   padding: 14px 16px;
   background: #f8f9fb;
@@ -293,14 +298,14 @@ button.danger:hover { background: var(--bad); color: white; }
   padding-top: 14px;
 }
 .reveal-meaning {
-  font-size: 17px;
+  font-size: calc(17px * var(--fs-scale));
   font-weight: 600;
   margin-bottom: 10px;
   color: var(--text);
   text-align: center;
 }
 .reveal-example {
-  font-size: 14px;
+  font-size: calc(14px * var(--fs-scale));
   line-height: 1.7;
   text-align: left;
   margin-top: 10px;
@@ -349,19 +354,19 @@ button.danger:hover { background: var(--bad); color: white; }
 }
 .reveal-example .ex-cn {
   font-family: 'Noto Sans CJK SC', 'Microsoft YaHei', sans-serif;
-  font-size: 17px;
+  font-size: calc(17px * var(--fs-scale));
   color: var(--text);
   margin-bottom: 4px;
 }
 .reveal-example .ex-py {
   color: var(--secondary);
   font-style: italic;
-  font-size: 13px;
+  font-size: calc(13px * var(--fs-scale));
   margin-bottom: 4px;
 }
 .reveal-example .ex-ko {
   color: var(--text);
-  font-size: 14px;
+  font-size: calc(14px * var(--fs-scale));
 }
 .reveal-example.empty {
   background: transparent;
@@ -391,7 +396,7 @@ button.danger:hover { background: var(--bad); color: white; }
   border: 2px solid var(--border);
   border-radius: 10px;
   cursor: pointer;
-  font-size: 15px;
+  font-size: calc(15px * var(--fs-scale));
   text-align: left;
   transition: all 0.15s;
   white-space: normal;
@@ -471,10 +476,10 @@ button.danger:hover { background: var(--bad); color: white; }
   align-items: center;
 }
 .review-item .ri-hanzi {
-  font-size: 28px;
+  font-size: calc(28px * var(--fs-scale));
   font-family: 'Noto Sans CJK SC', 'Microsoft YaHei', sans-serif;
 }
-.review-item .ri-body { font-size: 14px; }
+.review-item .ri-body { font-size: calc(14px * var(--fs-scale)); }
 .review-item .ri-pinyin { color: var(--secondary); font-style: italic; }
 .review-item .ri-meaning { color: var(--text); margin-top: 2px; }
 .review-item .ri-level {
@@ -538,9 +543,9 @@ button.danger:hover { background: var(--bad); color: white; }
   .menu-btn .big { font-size: 16px; }
   .menu-btn .small { font-size: 12px; }
   .card { padding: 32px 16px 24px; }
-  .hanzi, .flashcard .hanzi { font-size: 64px; letter-spacing: 2px; }
-  .pinyin { font-size: 18px; }
-  .meaning { font-size: 16px; padding: 12px 14px; }
+  .hanzi, .flashcard .hanzi { font-size: calc(64px * var(--fs-scale)); letter-spacing: 2px; }
+  .pinyin { font-size: calc(18px * var(--fs-scale)); }
+  .meaning { font-size: calc(16px * var(--fs-scale)); padding: 12px 14px; }
   .level-tag { font-size: 10px; padding: 2px 8px; }
   .audio-btn { width: 36px; height: 36px; font-size: 16px; }
   .result-badge { right: 54px; font-size: 13px; padding: 3px 12px; }
@@ -548,23 +553,23 @@ button.danger:hover { background: var(--bad); color: white; }
   .bar .back { font-size: 13px; padding: 6px 10px; }
   .progress, .score { font-size: 13px; }
   .controls button { padding: 12px; font-size: 15px; min-height: 44px; }
-  .quiz-option { padding: 14px 16px; font-size: 14px; min-height: 44px; }
+  .quiz-option { padding: 14px 16px; font-size: calc(14px * var(--fs-scale)); min-height: 44px; }
   #quiz-next { padding: 14px; font-size: 15px; min-height: 44px; }
   .reveal-example { padding: 10px 12px; }
-  .reveal-example .ex-cn { font-size: 16px; }
-  .reveal-example .ex-py { font-size: 12px; }
-  .reveal-example .ex-ko { font-size: 13px; }
+  .reveal-example .ex-cn { font-size: calc(16px * var(--fs-scale)); }
+  .reveal-example .ex-py { font-size: calc(12px * var(--fs-scale)); }
+  .reveal-example .ex-ko { font-size: calc(13px * var(--fs-scale)); }
   .review-item { grid-template-columns: auto 1fr auto; gap: 8px; padding: 10px 12px; }
-  .review-item .ri-hanzi { font-size: 24px; }
-  .review-item .ri-body { font-size: 13px; }
+  .review-item .ri-hanzi { font-size: calc(24px * var(--fs-scale)); }
+  .review-item .ri-body { font-size: calc(13px * var(--fs-scale)); }
   .setting-item { padding: 14px; }
   .setting-item input[type="number"], .setting-item select { padding: 12px; font-size: 16px; min-height: 44px; }
   .review-actions button { min-height: 44px; }
 }
 
 @media (max-width: 380px) {
-  .hanzi, .flashcard .hanzi { font-size: 54px; }
-  .pinyin { font-size: 16px; }
+  .hanzi, .flashcard .hanzi { font-size: calc(54px * var(--fs-scale)); }
+  .pinyin { font-size: calc(16px * var(--fs-scale)); }
   h1 { font-size: 22px; }
   .menu-btn { padding: 14px; }
   .card { padding: 28px 12px 20px; }

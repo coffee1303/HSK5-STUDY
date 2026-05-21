@@ -8,7 +8,15 @@ const defaultSettings = {
   quizDirection: 'hanzi-to-meaning',
   autoSpeak: 'on',
   language: 'ko',
+  fontSize: 'm',
 };
+
+function applyFontSize(size) {
+  const valid = ['s', 'm', 'l', 'xl'];
+  const s = valid.includes(size) ? size : 'm';
+  document.body.classList.remove('font-s', 'font-m', 'font-l', 'font-xl');
+  document.body.classList.add('font-' + s);
+}
 
 function getMeaning(w) {
   const lang = state.settings.language || 'ko';
@@ -520,6 +528,7 @@ function renderSettings() {
   $('#quiz-direction').value = state.settings.quizDirection;
   $('#auto-speak').value = state.settings.autoSpeak;
   $('#lang-select').value = state.settings.language || 'ko';
+  $('#font-size').value = state.settings.fontSize || 'm';
 }
 
 function saveSettingsForm() {
@@ -531,6 +540,8 @@ function saveSettingsForm() {
   state.settings.dailyCount = count;
   state.settings.quizDirection = $('#quiz-direction').value;
   state.settings.autoSpeak = $('#auto-speak').value;
+  state.settings.fontSize = $('#font-size').value;
+  applyFontSize(state.settings.fontSize);
   const newLang = $('#lang-select').value;
   const langChanged = newLang !== state.settings.language;
   state.settings.language = newLang;
@@ -603,6 +614,7 @@ function init() {
     return;
   }
   load();
+  applyFontSize(state.settings.fontSize);
   applyI18n();
   updateLangButtons();
   bindEvents();
