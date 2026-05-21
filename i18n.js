@@ -70,6 +70,8 @@ const I18N = {
 
     // 알림/확인
     alertSpeechNotSupported: "이 브라우저는 음성 합성을 지원하지 않습니다.",
+    alertInAppBrowser: "카카오톡·페이스북·인스타그램 등의 인앱 브라우저에서는 음성 재생이 지원되지 않습니다. 우측 상단 메뉴에서 'Chrome으로 열기' 또는 'Safari로 열기'를 선택해주세요.",
+    alertNoChineseVoice: "이 기기에 중국어 음성이 설치되어 있지 않아 발음을 재생할 수 없습니다.\n\n[설정 방법]\n• Android: 설정 > 시스템 > 언어 및 입력 > 텍스트 음성 변환(TTS) > 중국어 추가\n• iPhone: 설정 > 손쉬운 사용 > 음성 콘텐츠 > 음성 > 중국어 추가",
     alertNoStudyWords: "학습할 단어가 없습니다.",
     alertNoQuizWords: "퀴즈를 만들 단어가 없습니다.",
     confirmClearWrong: "오답 노트 {count}개를 모두 삭제할까요?",
@@ -152,6 +154,8 @@ const I18N = {
 
     // Alerts/confirms
     alertSpeechNotSupported: "Your browser does not support speech synthesis.",
+    alertInAppBrowser: "Speech playback is not supported in in-app browsers (KakaoTalk, Facebook, Instagram, etc.). Please tap the menu in the top-right corner and choose 'Open in Chrome' or 'Open in Safari'.",
+    alertNoChineseVoice: "No Chinese voice is installed on this device, so pronunciation cannot be played.\n\n[How to enable]\n• Android: Settings > System > Languages & input > Text-to-speech > Add Chinese\n• iPhone: Settings > Accessibility > Spoken Content > Voices > Add Chinese",
     alertNoStudyWords: "No words available for studying.",
     alertNoQuizWords: "No words available for the quiz.",
     confirmClearWrong: "Delete all {count} mistakes from the list?",
@@ -234,6 +238,8 @@ const I18N = {
 
     // アラート/確認
     alertSpeechNotSupported: "このブラウザは音声合成をサポートしていません。",
+    alertInAppBrowser: "カカオトーク・Facebook・Instagramなどのアプリ内ブラウザでは音声再生がサポートされていません。右上のメニューから「Chromeで開く」または「Safariで開く」を選択してください。",
+    alertNoChineseVoice: "この端末には中国語の音声が入っていないため、発音を再生できません。\n\n[設定方法]\n• Android: 設定 > システム > 言語と入力 > テキスト読み上げ(TTS) > 中国語を追加\n• iPhone: 設定 > アクセシビリティ > 読み上げコンテンツ > 声 > 中国語を追加",
     alertNoStudyWords: "学習する単語がありません。",
     alertNoQuizWords: "クイズを作成する単語がありません。",
     confirmClearWrong: "間違い直しリスト {count}個をすべて削除しますか？",

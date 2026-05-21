@@ -77,14 +77,55 @@ function setLanguage(lang) {
   }
 }
 
+let _zhVoice = null;
+let _voicesLoaded = false;
+let _speechAlerted = false;
+
+function _loadVoices() {
+  if (!('speechSynthesis' in window)) return;
+  const voices = speechSynthesis.getVoices();
+  if (!voices || voices.length === 0) return;
+  _voicesLoaded = true;
+  _zhVoice =
+    voices.find(v => v.lang === 'zh-CN') ||
+    voices.find(v => v.lang === 'zh-HK') ||
+    voices.find(v => v.lang === 'zh-TW') ||
+    voices.find(v => v.lang && v.lang.toLowerCase().startsWith('zh')) ||
+    null;
+}
+
+if ('speechSynthesis' in window) {
+  _loadVoices();
+  if ('onvoiceschanged' in speechSynthesis) {
+    speechSynthesis.addEventListener('voiceschanged', _loadVoices);
+  }
+}
+
+function isInAppBrowser() {
+  const ua = navigator.userAgent || '';
+  return /KAKAOTALK|FB_IAB|FBAN|FBAV|Instagram|NAVER|Line\/|Daum|KAKAOSTORY|; wv\)/i.test(ua);
+}
+
 function speak(text, btnEl) {
   if (!('speechSynthesis' in window)) {
-    alert(t('alertSpeechNotSupported'));
+    if (!_speechAlerted) {
+      alert(t(isInAppBrowser() ? 'alertInAppBrowser' : 'alertSpeechNotSupported'));
+      _speechAlerted = true;
+    }
+    return;
+  }
+  if (!_voicesLoaded) _loadVoices();
+  if (!_zhVoice) {
+    if (!_speechAlerted) {
+      alert(t(isInAppBrowser() ? 'alertInAppBrowser' : 'alertNoChineseVoice'));
+      _speechAlerted = true;
+    }
     return;
   }
   try { speechSynthesis.cancel(); } catch (e) {}
   const u = new SpeechSynthesisUtterance(text);
-  u.lang = 'zh-CN';
+  u.voice = _zhVoice;
+  u.lang = _zhVoice.lang || 'zh-CN';
   u.rate = 0.85;
   u.pitch = 1;
   if (btnEl) {
