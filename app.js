@@ -320,6 +320,10 @@ function nextStudy() {
       }
       alert(t('alertNoMoreWords'));
     }
+    if (state.studyWords.length > 0 && confirm(t('confirmStudyToQuiz'))) {
+      startQuiz(state.studyMode, [...state.studyWords]);
+      return;
+    }
     showScreen('home');
     renderHome();
     return;
