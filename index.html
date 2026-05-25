@@ -36,6 +36,10 @@
         <span class="big" data-i18n="menuQuiz5Big">5급 단어 퀴즈</span>
         <span class="small" data-i18n="menuQuiz5Small">HSK 5급</span>
       </button>
+      <button class="menu-btn" data-action="today">
+        <span class="big" data-i18n="menuTodayBig">오늘 학습한 단어</span>
+        <span class="small" data-i18n="menuTodaySmall">오늘 0단어 학습</span>
+      </button>
       <button class="menu-btn warn" data-action="review">
         <span class="big" data-i18n="menuReviewBig">오답 복습</span>
         <span class="small" data-i18n="menuReviewSmall" data-i18n-vars="wrong-count">틀린 단어 <span id="wrong-count">0</span>개</span>
@@ -116,6 +120,17 @@
       <button id="review-clear" class="danger" data-i18n="reviewClearBtn">전체 삭제</button>
     </div>
     <div id="review-list" class="review-list"></div>
+  </section>
+
+  <section id="today" class="screen">
+    <header class="bar">
+      <button class="back" data-action="home" data-i18n="back">← 메인</button>
+      <h2 data-i18n="todayTitle">오늘 학습한 단어</h2>
+    </header>
+    <div class="review-actions">
+      <button id="today-quiz" class="primary" data-i18n="todayQuizBtn">오늘 단어로 퀴즈 풀기</button>
+    </div>
+    <div id="today-list" class="review-list"></div>
   </section>
 
   <section id="settings" class="screen">

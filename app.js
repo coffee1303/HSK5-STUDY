@@ -2,6 +2,7 @@
 const KEY_SETTINGS = 'hsk-settings';
 const KEY_WRONG = 'hsk-wrong';
 const KEY_PROGRESS = 'hsk-progress';
+const KEY_HISTORY = 'hsk-study-history';
 
 const defaultSettings = {
   dailyCount: 20,
@@ -40,6 +41,7 @@ function applyI18n() {
   const counts = {
     menuStudyBasicSmall: VOCABULARY.basic.length,
     menuStudy5Small: VOCABULARY.hsk5.length,
+    menuTodaySmall: getTodayWords().length,
     menuReviewSmall: state.wrong.length,
     menuSettingsSmall: state.settings.dailyCount,
   };
@@ -81,6 +83,7 @@ function setLanguage(lang) {
     else if (id === 'study') renderStudy();
     else if (id === 'quiz') renderQuiz();
     else if (id === 'review') renderReview();
+    else if (id === 'today') renderToday();
     else if (id === 'settings') renderSettings();
   }
 }
@@ -151,6 +154,7 @@ const state = {
   studyWords: [],
   studyIndex: 0,
   studyMode: null,
+  studyHistory: [],
   quizWords: [],
   quizIndex: 0,
   quizScore: 0,
@@ -173,11 +177,40 @@ function load() {
       state.progress = { basic: p.basic || [], hsk5: p.hsk5 || [] };
     }
   } catch {}
+  try {
+    const h = JSON.parse(localStorage.getItem(KEY_HISTORY));
+    if (Array.isArray(h)) state.studyHistory = h;
+  } catch {}
 }
 
 function saveSettings() { localStorage.setItem(KEY_SETTINGS, JSON.stringify(state.settings)); }
 function saveWrong() { localStorage.setItem(KEY_WRONG, JSON.stringify(state.wrong)); }
 function saveProgress() { localStorage.setItem(KEY_PROGRESS, JSON.stringify(state.progress)); }
+function saveStudyHistory() { localStorage.setItem(KEY_HISTORY, JSON.stringify(state.studyHistory)); }
+
+function getStartOfToday() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+}
+
+function recordStudy(w, mode) {
+  const start = getStartOfToday();
+  const dup = state.studyHistory.some(e => e.h === w.h && e.t >= start);
+  if (!dup) {
+    state.studyHistory.push({ h: w.h, mode, t: Date.now() });
+    saveStudyHistory();
+  }
+}
+
+function getTodayWords() {
+  if (typeof VOCABULARY === 'undefined') return [];
+  const start = getStartOfToday();
+  const entries = state.studyHistory.filter(e => e.t >= start);
+  const all = [...VOCABULARY.basic, ...VOCABULARY.hsk5];
+  const map = new Map(all.map(w => [w.h, w]));
+  return entries.slice().reverse().map(e => map.get(e.h)).filter(Boolean);
+}
 
 function $(sel) { return document.querySelector(sel); }
 function $$(sel) { return document.querySelectorAll(sel); }
@@ -248,6 +281,7 @@ function renderStudy() {
     state.progress[poolKey].push(w.h);
     saveProgress();
   }
+  recordStudy(w, state.studyMode);
   // auto-speak
   if (state.settings.autoSpeak === 'on') {
     setTimeout(() => speak(w.h, $('#study-audio')), 200);
@@ -541,6 +575,34 @@ function startReviewQuiz() {
   startQuiz('review', [...state.wrong]);
 }
 
+function renderToday() {
+  const words = getTodayWords();
+  const listEl = $('#today-list');
+  const quizBtn = $('#today-quiz');
+  if (words.length === 0) {
+    listEl.innerHTML = `<div class="empty-state">${t('todayEmpty')}</div>`;
+    quizBtn.disabled = true;
+    return;
+  }
+  quizBtn.disabled = false;
+  listEl.innerHTML = words.map(w => `
+    <div class="review-item">
+      <div class="ri-hanzi">${w.h}</div>
+      <div class="ri-body">
+        <div class="ri-pinyin">${w.p}</div>
+        <div class="ri-meaning">${getMeaning(w)}</div>
+      </div>
+      <span class="ri-level">${t('studyLevel', { level: w.l })}</span>
+    </div>
+  `).join('');
+}
+
+function startTodayQuiz() {
+  const words = getTodayWords();
+  if (words.length === 0) return;
+  startQuiz('today', words);
+}
+
 function clearWrong() {
   if (state.wrong.length === 0) return;
   if (!confirm(t('confirmClearWrong', { count: state.wrong.length }))) return;
@@ -610,6 +672,7 @@ function bindEvents() {
       case 'quiz-basic': startQuiz('basic'); break;
       case 'quiz-5': startQuiz('hsk5'); break;
       case 'review': showScreen('review'); renderReview(); break;
+      case 'today': showScreen('today'); renderToday(); break;
       case 'settings': showScreen('settings'); renderSettings(); break;
     }
   });
@@ -619,6 +682,7 @@ function bindEvents() {
   $('#quiz-next').onclick = nextQuiz;
   $('#review-quiz').onclick = startReviewQuiz;
   $('#review-clear').onclick = clearWrong;
+  $('#today-quiz').onclick = startTodayQuiz;
   $('#save-settings').onclick = saveSettingsForm;
   $('#reset-progress').onclick = resetProgress;
 

@@ -13,6 +13,8 @@ const I18N = {
     menuQuizBasicSmall: "HSK 1~4급",
     menuQuiz5Big: "5급 단어 퀴즈",
     menuQuiz5Small: "HSK 5급",
+    menuTodayBig: "오늘 학습한 단어",
+    menuTodaySmall: "오늘 {count}단어 학습",
     menuReviewBig: "오답 복습",
     menuReviewSmall: "틀린 단어 {count}개",
     menuSettingsBig: "설정",
@@ -43,6 +45,9 @@ const I18N = {
     resultUnitCount: "{count}개",
 
     // 오답 복습
+    todayTitle: "오늘 학습한 단어",
+    todayQuizBtn: "오늘 단어로 퀴즈 풀기",
+    todayEmpty: "오늘 학습한 단어가 없습니다.<br>단어 학습을 시작하면 여기에 모입니다.",
     reviewTitle: "오답 복습",
     reviewQuizBtn: "오답으로 퀴즈 풀기",
     reviewClearBtn: "전체 삭제",
@@ -105,6 +110,8 @@ const I18N = {
     menuQuizBasicSmall: "HSK 1~4",
     menuQuiz5Big: "HSK 5 Vocabulary Quiz",
     menuQuiz5Small: "HSK 5",
+    menuTodayBig: "Words Studied Today",
+    menuTodaySmall: "{count} words today",
     menuReviewBig: "Review Mistakes",
     menuReviewSmall: "{count} wrong words",
     menuSettingsBig: "Settings",
@@ -135,6 +142,9 @@ const I18N = {
     resultUnitCount: "{count}",
 
     // Review
+    todayTitle: "Words Studied Today",
+    todayQuizBtn: "Quiz today's words",
+    todayEmpty: "No words studied today yet.<br>Start a study session and they'll appear here.",
     reviewTitle: "Review Mistakes",
     reviewQuizBtn: "Quiz on mistakes",
     reviewClearBtn: "Clear all",
@@ -197,6 +207,8 @@ const I18N = {
     menuQuizBasicSmall: "HSK 1~4",
     menuQuiz5Big: "HSK 5単語クイズ",
     menuQuiz5Small: "HSK 5",
+    menuTodayBig: "今日学習した単語",
+    menuTodaySmall: "本日 {count}単語学習",
     menuReviewBig: "間違い直し",
     menuReviewSmall: "間違えた単語 {count}個",
     menuSettingsBig: "設定",
@@ -227,6 +239,9 @@ const I18N = {
     resultUnitCount: "{count}個",
 
     // 間違い直し
+    todayTitle: "今日学習した単語",
+    todayQuizBtn: "今日の単語でクイズ",
+    todayEmpty: "今日学習した単語はまだありません。<br>単語学習を始めるとここに集まります。",
     reviewTitle: "間違い直し",
     reviewQuizBtn: "間違えた単語でクイズ",
     reviewClearBtn: "すべて削除",
