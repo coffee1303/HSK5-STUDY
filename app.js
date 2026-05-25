@@ -4,7 +4,7 @@ const KEY_WRONG = 'hsk-wrong';
 const KEY_PROGRESS = 'hsk-progress';
 
 const defaultSettings = {
-  dailyCount: 10,
+  dailyCount: 20,
   quizDirection: 'hanzi-to-meaning',
   autoSpeak: 'off',
   language: 'ko',
