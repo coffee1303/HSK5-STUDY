@@ -428,7 +428,13 @@ button.danger:hover { background: var(--bad); color: white; }
 .quiz-feedback.correct { color: var(--good); }
 .quiz-feedback.wrong { color: var(--bad); }
 
-#quiz-next { width: 100%; padding: 14px; font-size: 16px; }
+#quiz-next {
+  padding: 6px 14px;
+  font-size: 14px;
+  margin-left: auto;
+  white-space: nowrap;
+  min-height: 36px;
+}
 .hidden { display: none !important; }
 
 .result-card {
@@ -554,7 +560,7 @@ button.danger:hover { background: var(--bad); color: white; }
   .progress, .score { font-size: 13px; }
   .controls button { padding: 12px; font-size: 15px; min-height: 44px; }
   .quiz-option { padding: 14px 16px; font-size: calc(14px * var(--fs-scale)); min-height: 44px; }
-  #quiz-next { padding: 14px; font-size: 15px; min-height: 44px; }
+  #quiz-next { padding: 8px 14px; font-size: 14px; min-height: 40px; }
   .reveal-example { padding: 10px 12px; }
   .reveal-example .ex-cn { font-size: calc(16px * var(--fs-scale)); }
   .reveal-example .ex-py { font-size: calc(12px * var(--fs-scale)); }
