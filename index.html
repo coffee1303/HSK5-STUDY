@@ -20,6 +20,10 @@
     <h1 data-i18n="siteTitle">HSK 5급 단어 공부</h1>
     <p class="subtitle" data-i18n="subtitle">기초(1~4급) 1193단어 · 5급 1298단어</p>
     <div class="menu">
+      <button class="menu-btn primary hidden" data-action="resume-quiz" id="resume-quiz-btn">
+        <span class="big" data-i18n="menuResumeQuizBig">퀴즈 이어하기</span>
+        <span class="small"><span id="resume-quiz-progress">0 / 0</span> · <span data-i18n="score">점수</span> <span id="resume-quiz-score">0</span></span>
+      </button>
       <button class="menu-btn" data-action="study-basic">
         <span class="big" data-i18n="menuStudyBasicBig">기초 단어 학습</span>
         <span class="small" data-i18n="menuStudyBasicSmall" data-i18n-vars="basic-count">HSK 1~4급 · <span id="basic-count">0</span>단어</span>
@@ -72,7 +76,7 @@
 
   <section id="quiz" class="screen">
     <header class="bar">
-      <button class="back" data-action="home" data-i18n="back">← 메인</button>
+      <button class="back" data-action="quiz-back" data-i18n="back">← 메인</button>
       <span class="progress" id="quiz-progress">1 / 10</span>
       <span class="score"><span data-i18n="score">점수</span>: <span id="quiz-score">0</span></span>
       <button id="quiz-next" class="primary hidden" data-i18n="next">다음 →</button>

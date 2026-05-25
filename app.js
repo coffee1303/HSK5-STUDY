@@ -3,6 +3,7 @@ const KEY_SETTINGS = 'hsk-settings';
 const KEY_WRONG = 'hsk-wrong';
 const KEY_PROGRESS = 'hsk-progress';
 const KEY_HISTORY = 'hsk-study-history';
+const KEY_QUIZ_SAVE = 'hsk-quiz-saved';
 
 const defaultSettings = {
   dailyCount: 20,
@@ -212,6 +213,42 @@ function getTodayWords() {
   return entries.slice().reverse().map(e => map.get(e.h)).filter(Boolean);
 }
 
+function saveQuizState(indexOverride) {
+  const data = {
+    words: state.quizWords,
+    index: typeof indexOverride === 'number' ? indexOverride : state.quizIndex,
+    score: state.quizScore,
+    mode: state.quizMode,
+    savedAt: Date.now(),
+  };
+  localStorage.setItem(KEY_QUIZ_SAVE, JSON.stringify(data));
+}
+
+function loadSavedQuiz() {
+  try {
+    const data = JSON.parse(localStorage.getItem(KEY_QUIZ_SAVE));
+    if (!data || !Array.isArray(data.words) || data.words.length === 0) return null;
+    if (typeof data.index !== 'number' || data.index >= data.words.length) return null;
+    return data;
+  } catch { return null; }
+}
+
+function clearSavedQuiz() {
+  localStorage.removeItem(KEY_QUIZ_SAVE);
+}
+
+function resumeQuiz() {
+  const saved = loadSavedQuiz();
+  if (!saved) return;
+  state.quizMode = saved.mode;
+  state.quizWords = saved.words;
+  state.quizIndex = saved.index;
+  state.quizScore = saved.score;
+  state.quizAnswered = false;
+  showScreen('quiz');
+  renderQuiz();
+}
+
 function $(sel) { return document.querySelector(sel); }
 function $$(sel) { return document.querySelectorAll(sel); }
 
@@ -248,6 +285,17 @@ function pickQuizWords(pool, count) {
 
 function renderHome() {
   applyI18n();
+  const saved = loadSavedQuiz();
+  const resumeBtn = $('#resume-quiz-btn');
+  if (resumeBtn) {
+    if (saved) {
+      resumeBtn.classList.remove('hidden');
+      $('#resume-quiz-progress').textContent = `${saved.index + 1} / ${saved.words.length}`;
+      $('#resume-quiz-score').textContent = saved.score;
+    } else {
+      resumeBtn.classList.add('hidden');
+    }
+  }
 }
 
 // ========= STUDY =========
@@ -341,6 +389,7 @@ function prevStudy() {
 
 // ========= QUIZ =========
 function startQuiz(mode, customWords) {
+  clearSavedQuiz();
   state.quizMode = mode;
   if (customWords) {
     state.quizWords = shuffle(customWords).slice(0, Math.min(customWords.length, state.settings.dailyCount));
@@ -517,6 +566,7 @@ function nextQuiz() {
 }
 
 function showResult() {
+  clearSavedQuiz();
   const total = state.quizWords.length;
   const correct = state.quizScore;
   const wrong = total - correct;
@@ -607,6 +657,22 @@ function startTodayQuiz() {
   startQuiz('today', words);
 }
 
+function handleQuizBack() {
+  const effectiveIdx = state.quizAnswered ? state.quizIndex + 1 : state.quizIndex;
+  const stillInProgress = state.quizWords.length > 0 && effectiveIdx < state.quizWords.length;
+  if (stillInProgress) {
+    if (confirm(t('confirmSaveQuiz'))) {
+      saveQuizState(effectiveIdx);
+    } else {
+      clearSavedQuiz();
+    }
+  } else {
+    clearSavedQuiz();
+  }
+  showScreen('home');
+  renderHome();
+}
+
 function clearWrong() {
   if (state.wrong.length === 0) return;
   if (!confirm(t('confirmClearWrong', { count: state.wrong.length }))) return;
@@ -678,6 +744,8 @@ function bindEvents() {
       case 'review': showScreen('review'); renderReview(); break;
       case 'today': showScreen('today'); renderToday(); break;
       case 'settings': showScreen('settings'); renderSettings(); break;
+      case 'resume-quiz': resumeQuiz(); break;
+      case 'quiz-back': handleQuizBack(); break;
     }
   });
 
