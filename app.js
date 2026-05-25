@@ -254,8 +254,38 @@ function renderStudy() {
   }
 }
 
+const STUDY_EXTRA_COUNT = 10;
+
+function extendStudyWords(count) {
+  const mode = state.studyMode;
+  const pool = mode === 'basic' ? VOCABULARY.basic : VOCABULARY.hsk5;
+  const poolKey = mode === 'basic' ? 'basic' : 'hsk5';
+  const existing = new Set(state.studyWords.map(w => w.h));
+  const studiedSet = new Set(state.progress[poolKey]);
+  const candidates = pool.filter(w => !existing.has(w.h));
+  const unstudied = candidates.filter(w => !studiedSet.has(w.h));
+  let extra;
+  if (unstudied.length >= count) {
+    extra = shuffle(unstudied).slice(0, count);
+  } else {
+    const studied = candidates.filter(w => studiedSet.has(w.h));
+    extra = shuffle(unstudied).concat(shuffle(studied).slice(0, count - unstudied.length));
+  }
+  state.studyWords.push(...extra);
+  return extra.length;
+}
+
 function nextStudy() {
   if (state.studyIndex >= state.studyWords.length - 1) {
+    if (confirm(t('confirmStudyMore', { count: STUDY_EXTRA_COUNT }))) {
+      const added = extendStudyWords(STUDY_EXTRA_COUNT);
+      if (added > 0) {
+        state.studyIndex++;
+        renderStudy();
+        return;
+      }
+      alert(t('alertNoMoreWords'));
+    }
     showScreen('home');
     renderHome();
     return;
