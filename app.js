@@ -20,22 +20,44 @@ function applyFontSize(size) {
   document.body.classList.add('font-' + s);
 }
 
+function _resolveEntry(entry) {
+  if (entry == null) return null;
+  if (typeof entry === 'string') return { m: entry };
+  return entry;
+}
+
 function getMeaning(w) {
   const lang = state.settings.language || 'ko';
-  if (lang === 'en') {
-    return w.m;
-  }
+  if (lang === 'en') return w.m;
   if (lang === 'ja') {
-    if (typeof TRANSLATIONS_JA !== 'undefined' && TRANSLATIONS_JA[w.h]) {
-      return TRANSLATIONS_JA[w.h];
-    }
-    return w.m; // English fallback when Japanese translation is missing
+    const ja = (typeof TRANSLATIONS_JA !== 'undefined') ? TRANSLATIONS_JA[w.h] : null;
+    const e = _resolveEntry(ja);
+    return e ? e.m : w.m;
   }
   // Korean (default)
-  if (typeof TRANSLATIONS !== 'undefined' && TRANSLATIONS[w.h]) {
-    return TRANSLATIONS[w.h];
-  }
-  return w.m;
+  const ko = (typeof TRANSLATIONS !== 'undefined') ? TRANSLATIONS[w.h] : null;
+  const e = _resolveEntry(ko);
+  return e ? e.m : w.m;
+}
+
+function renderMetaInline(w) {
+  const meta = getWordMeta(w);
+  if (!meta.pos && !meta.star) return '';
+  let h = '<span class="ri-meta">';
+  if (meta.star) h += `<span class="star-badge">★</span>`;
+  if (meta.pos) h += `<span class="pos-tag">${meta.pos}</span>`;
+  h += '</span>';
+  return h;
+}
+
+function getWordMeta(w) {
+  const lang = state.settings.language || 'ko';
+  let entry = null;
+  if (lang === 'ko' && typeof TRANSLATIONS !== 'undefined') entry = TRANSLATIONS[w.h];
+  else if (lang === 'ja' && typeof TRANSLATIONS_JA !== 'undefined') entry = TRANSLATIONS_JA[w.h];
+  const e = _resolveEntry(entry);
+  if (!e) return { pos: null, star: false };
+  return { pos: e.pos || null, star: !!e.star };
 }
 
 function applyI18n() {
@@ -319,6 +341,12 @@ function renderStudy() {
   $('#study-level').textContent = t('studyLevel', { level: w.l });
   $('#study-hanzi').textContent = w.h;
   $('#study-pinyin').textContent = w.p;
+  const meta = getWordMeta(w);
+  const metaEl = $('#study-meta');
+  let metaHTML = '';
+  if (meta.star) metaHTML += `<span class="star-badge">★ ${t('starBadge')}</span>`;
+  if (meta.pos) metaHTML += `<span class="pos-tag">${meta.pos}</span>`;
+  metaEl.innerHTML = metaHTML;
   $('#study-meaning').textContent = getMeaning(w);
   setExampleEl($('#study-example'), w);
   $('#study-prev').disabled = state.studyIndex === 0;
@@ -605,7 +633,7 @@ function renderReview() {
       <div class="ri-hanzi">${w.h}</div>
       <div class="ri-body">
         <div class="ri-pinyin">${w.p}</div>
-        <div class="ri-meaning">${getMeaning(w)}</div>
+        <div class="ri-meaning">${renderMetaInline(w)}${getMeaning(w)}</div>
       </div>
       <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;">
         <span class="ri-level">${t('studyLevel', { level: w.l })}</span>
@@ -644,7 +672,7 @@ function renderToday() {
       <div class="ri-hanzi">${w.h}</div>
       <div class="ri-body">
         <div class="ri-pinyin">${w.p}</div>
-        <div class="ri-meaning">${getMeaning(w)}</div>
+        <div class="ri-meaning">${renderMetaInline(w)}${getMeaning(w)}</div>
       </div>
       <span class="ri-level">${t('studyLevel', { level: w.l })}</span>
     </div>

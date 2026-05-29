@@ -35,6 +35,7 @@ const I18N = {
     exampleLabel: "예문",
     exampleEmpty: "예문은 향후 추가될 예정입니다.",
     audioLabel: "발음 듣기",
+    starBadge: "최빈출",
     exampleAudioLabel: "예문 발음 듣기",
     studyLevel: "HSK {level}",
 
@@ -135,6 +136,7 @@ const I18N = {
     exampleLabel: "Example",
     exampleEmpty: "English example translation coming soon.",
     audioLabel: "Play pronunciation",
+    starBadge: "Most frequent",
     exampleAudioLabel: "Play example pronunciation",
     studyLevel: "HSK {level}",
 
@@ -235,6 +237,7 @@ const I18N = {
     exampleLabel: "例文",
     exampleEmpty: "日本語の例文翻訳は今後追加予定です。",
     audioLabel: "発音を聞く",
+    starBadge: "最頻出",
     exampleAudioLabel: "例文の発音を聞く",
     studyLevel: "HSK {level}",
 
