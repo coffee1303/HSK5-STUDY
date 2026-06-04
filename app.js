@@ -387,9 +387,13 @@ function extendStudyWords(count) {
   return extra.length;
 }
 
-function nextStudy() {
+async function nextStudy() {
   if (state.studyIndex >= state.studyWords.length - 1) {
-    if (confirm(t('confirmStudyMore', { count: STUDY_EXTRA_COUNT }))) {
+    const studyMore = await customConfirm(
+      t('confirmStudyMore', { count: STUDY_EXTRA_COUNT }),
+      { okText: t('btnYes'), cancelText: t('btnNo') }
+    );
+    if (studyMore) {
       const added = extendStudyWords(STUDY_EXTRA_COUNT);
       if (added > 0) {
         state.studyIndex++;
@@ -398,9 +402,15 @@ function nextStudy() {
       }
       alert(t('alertNoMoreWords'));
     }
-    if (state.studyWords.length > 0 && confirm(t('confirmStudyToQuiz'))) {
-      startQuiz(state.studyMode, [...state.studyWords]);
-      return;
+    if (state.studyWords.length > 0) {
+      const toQuiz = await customConfirm(
+        t('confirmStudyToQuiz'),
+        { okText: t('btnYes'), cancelText: t('btnNo') }
+      );
+      if (toQuiz) {
+        startQuiz(state.studyMode, [...state.studyWords]);
+        return;
+      }
     }
     showScreen('home');
     renderHome();
@@ -772,9 +782,13 @@ async function handleQuizBack() {
   renderHome();
 }
 
-function clearWrong() {
+async function clearWrong() {
   if (state.wrong.length === 0) return;
-  if (!confirm(t('confirmClearWrong', { count: state.wrong.length }))) return;
+  const ok = await customConfirm(
+    t('confirmClearWrong', { count: state.wrong.length }),
+    { okText: t('btnDelete'), cancelText: t('btnCancel') }
+  );
+  if (!ok) return;
   state.wrong = [];
   saveWrong();
   renderReview();
@@ -816,8 +830,12 @@ function saveSettingsForm() {
   renderHome();
 }
 
-function resetProgress() {
-  if (!confirm(t('confirmResetProgress'))) return;
+async function resetProgress() {
+  const ok = await customConfirm(
+    t('confirmResetProgress'),
+    { okText: t('btnReset'), cancelText: t('btnCancel') }
+  );
+  if (!ok) return;
   state.progress = { basic: [], hsk5: [] };
   saveProgress();
   alert(t('alertReset'));
