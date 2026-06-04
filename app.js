@@ -456,16 +456,16 @@ function renderQuiz() {
   if (direction === 'hanzi-to-meaning') {
     $('#quiz-hanzi').textContent = w.h;
     $('#quiz-hanzi').style.fontSize = '';
-    $('#quiz-pinyin').textContent = w.p;
     $('#quiz-audio').style.display = '';
   } else {
     // show meaning, options are hanzi
     const meaning = getMeaning(w);
     $('#quiz-hanzi').textContent = meaning.length > 50 ? meaning.slice(0, 50) + '...' : meaning;
     $('#quiz-hanzi').style.fontSize = '24px';
-    $('#quiz-pinyin').textContent = '';
     $('#quiz-audio').style.display = 'none';
   }
+  // Pinyin is always hidden until the answer is revealed
+  $('#quiz-pinyin').textContent = '';
 
   // build options - 4 choices including correct
   const pool = state.quizMode === 'basic' ? VOCABULARY.basic : (state.quizMode === 'hsk5' ? VOCABULARY.hsk5 : [...VOCABULARY.basic, ...VOCABULARY.hsk5]);
@@ -552,13 +552,14 @@ function answerQuiz(chosen, correct, btn) {
   badge.classList.add(isCorrect ? 'correct' : 'wrong');
   badge.textContent = isCorrect ? t('correct') : t('wrong');
   // show reveal: word info (if was hidden) + example
-  // ensure hanzi & pinyin are shown for meaning->hanzi direction
+  // ensure hanzi is shown for meaning->hanzi direction
   if (state.settings.quizDirection === 'meaning-to-hanzi') {
     $('#quiz-hanzi').textContent = correct.h;
     $('#quiz-hanzi').style.fontSize = '';
-    $('#quiz-pinyin').textContent = correct.p;
     $('#quiz-audio').style.display = '';
   }
+  // Always reveal pinyin once the answer is shown
+  $('#quiz-pinyin').textContent = correct.p;
   $('#quiz-reveal-meaning').textContent = getMeaning(correct);
   setExampleEl($('#quiz-reveal-example'), correct);
   $('#quiz-reveal').classList.remove('hidden');
