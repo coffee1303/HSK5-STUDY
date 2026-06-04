@@ -65,6 +65,7 @@ function applyI18n() {
     menuStudyBasicSmall: VOCABULARY.basic.length,
     menuStudy5Small: VOCABULARY.hsk5.length,
     menuTodaySmall: getTodayWords().length,
+    menuStudiedSmall: getStudiedWords().length,
     menuReviewSmall: state.wrong.length,
     menuSettingsSmall: state.settings.dailyCount,
   };
@@ -107,6 +108,7 @@ function setLanguage(lang) {
     else if (id === 'quiz') renderQuiz();
     else if (id === 'review') renderReview();
     else if (id === 'today') renderToday();
+    else if (id === 'studied') renderStudied();
     else if (id === 'settings') renderSettings();
   }
 }
@@ -686,6 +688,55 @@ function startTodayQuiz() {
   startQuiz('today', words);
 }
 
+function getStudiedWords() {
+  if (typeof VOCABULARY === 'undefined') return [];
+  const all = [...VOCABULARY.basic, ...VOCABULARY.hsk5];
+  const map = new Map(all.map(w => [w.h, w]));
+  const hanziSet = new Set([...(state.progress.basic || []), ...(state.progress.hsk5 || [])]);
+  // Most recent first: iterate progress arrays in reverse
+  const ordered = [];
+  const seen = new Set();
+  const lists = [state.progress.hsk5 || [], state.progress.basic || []];
+  for (const list of lists) {
+    for (let i = list.length - 1; i >= 0; i--) {
+      const h = list[i];
+      if (seen.has(h)) continue;
+      seen.add(h);
+      const w = map.get(h);
+      if (w) ordered.push(w);
+    }
+  }
+  return ordered;
+}
+
+function renderStudied() {
+  const words = getStudiedWords();
+  const listEl = $('#studied-list');
+  const quizBtn = $('#studied-quiz');
+  if (words.length === 0) {
+    listEl.innerHTML = `<div class="empty-state">${t('studiedEmpty')}</div>`;
+    quizBtn.disabled = true;
+    return;
+  }
+  quizBtn.disabled = false;
+  listEl.innerHTML = words.map(w => `
+    <div class="review-item">
+      <div class="ri-hanzi">${w.h}</div>
+      <div class="ri-body">
+        <div class="ri-pinyin">${w.p}</div>
+        <div class="ri-meaning">${renderMetaInline(w)}${getMeaning(w)}</div>
+      </div>
+      <span class="ri-level">${t('studyLevel', { level: w.l })}</span>
+    </div>
+  `).join('');
+}
+
+function startStudiedQuiz() {
+  const words = getStudiedWords();
+  if (words.length === 0) return;
+  startQuiz('studied', words);
+}
+
 function customConfirm(message, options) {
   return new Promise(resolve => {
     const modal = $('#confirm-modal');
@@ -791,6 +842,7 @@ function bindEvents() {
       case 'quiz-5': startQuiz('hsk5'); break;
       case 'review': showScreen('review'); renderReview(); break;
       case 'today': showScreen('today'); renderToday(); break;
+      case 'studied': showScreen('studied'); renderStudied(); break;
       case 'settings': showScreen('settings'); renderSettings(); break;
       case 'resume-quiz': resumeQuiz(); break;
       case 'quiz-back': handleQuizBack(); break;
@@ -803,6 +855,7 @@ function bindEvents() {
   $('#review-quiz').onclick = startReviewQuiz;
   $('#review-clear').onclick = clearWrong;
   $('#today-quiz').onclick = startTodayQuiz;
+  $('#studied-quiz').onclick = startStudiedQuiz;
   $('#save-settings').onclick = saveSettingsForm;
   $('#reset-progress').onclick = resetProgress;
 

@@ -98,7 +98,15 @@ h2 { font-size: 20px; }
 
 .menu {
   display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 12px;
+}
+.menu-btn[data-action="resume-quiz"] { grid-column: 1 / -1; }
+@media (max-width: 720px) {
+  .menu { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 420px) {
+  .menu { grid-template-columns: 1fr; }
 }
 
 .menu-btn {
