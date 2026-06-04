@@ -686,11 +686,30 @@ function startTodayQuiz() {
   startQuiz('today', words);
 }
 
-function handleQuizBack() {
+function customConfirm(message, options) {
+  return new Promise(resolve => {
+    const modal = $('#confirm-modal');
+    $('#confirm-message').textContent = message;
+    $('#confirm-ok').textContent = (options && options.okText) || t('btnSave');
+    $('#confirm-cancel').textContent = (options && options.cancelText) || t('btnCancel');
+    modal.classList.remove('hidden');
+    const cleanup = (result) => {
+      modal.classList.add('hidden');
+      $('#confirm-ok').onclick = null;
+      $('#confirm-cancel').onclick = null;
+      resolve(result);
+    };
+    $('#confirm-ok').onclick = () => cleanup(true);
+    $('#confirm-cancel').onclick = () => cleanup(false);
+  });
+}
+
+async function handleQuizBack() {
   const effectiveIdx = state.quizAnswered ? state.quizIndex + 1 : state.quizIndex;
   const stillInProgress = state.quizWords.length > 0 && effectiveIdx < state.quizWords.length;
   if (stillInProgress) {
-    if (confirm(t('confirmSaveQuiz'))) {
+    const save = await customConfirm(t('confirmSaveQuiz'));
+    if (save) {
       saveQuizState(effectiveIdx);
     } else {
       clearSavedQuiz();
