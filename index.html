@@ -16,7 +16,35 @@
 
 <div id="app">
 
-  <section id="home" class="screen active">
+  <section id="login" class="screen active">
+    <div class="login-wrap">
+      <h1 data-i18n="loginTitle">프로필 선택</h1>
+      <p class="subtitle" data-i18n="loginSubtitle">학습 기록은 프로필별로 분리되어 저장됩니다.</p>
+
+      <div id="profile-list" class="profile-list"></div>
+
+      <div id="profile-empty" class="profile-empty hidden">
+        <p data-i18n="loginEmpty">아직 프로필이 없습니다. 새 프로필을 만들어 시작하세요.</p>
+      </div>
+
+      <div class="profile-create">
+        <input type="text" id="new-profile-name" maxlength="20"
+               data-i18n-attr-placeholder="loginPlaceholder"
+               placeholder="이름 (최대 20자)" autocomplete="off">
+        <input type="password" id="new-profile-password" maxlength="64"
+               data-i18n-attr-placeholder="loginPasswordPlaceholder"
+               placeholder="비밀번호 (선택)" autocomplete="new-password">
+        <button id="add-profile" class="primary" data-i18n="loginAddBtn">새 프로필 만들기</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="home" class="screen">
+    <div class="home-profile-bar">
+      <span class="home-profile-label" data-i18n="profileLabel">프로필</span>
+      <span class="home-profile-name" id="home-profile-name"></span>
+      <button class="home-profile-switch" id="home-profile-switch" data-i18n="profileSwitch">전환</button>
+    </div>
     <h1 data-i18n="siteTitle">HSK 5급 단어 공부</h1>
     <p class="subtitle" data-i18n="subtitle">기초(1~4급) 1193단어 · 5급 1298단어</p>
     <div class="menu">
@@ -215,6 +243,15 @@
       <button id="reset-progress" class="danger" data-i18n="settingsResetBtn">학습한 단어 기록 초기화</button>
       <p class="hint" data-i18n="settingsResetHint">학습한 단어를 다시 처음부터 보고 싶을 때 사용하세요</p>
     </div>
+    <div class="setting-item">
+      <label data-i18n="settingsProfileLabel">프로필</label>
+      <div class="profile-actions">
+        <button id="switch-profile" data-i18n="settingsProfileSwitch">프로필 전환</button>
+        <button id="change-password" data-i18n="settingsChangePassword">비밀번호 변경</button>
+        <button id="delete-profile" class="danger" data-i18n="settingsProfileDelete">현재 프로필 삭제</button>
+      </div>
+      <p class="hint" data-i18n="settingsProfileHint">프로필을 전환하거나 현재 프로필을 삭제합니다. 삭제 시 해당 프로필의 모든 학습 기록이 사라집니다.</p>
+    </div>
     <button id="save-settings" class="primary" data-i18n="settingsSave">저장</button>
   </section>
 
@@ -227,6 +264,24 @@
     <div class="modal-actions">
       <button id="confirm-ok" class="modal-btn primary" type="button"></button>
       <button id="confirm-cancel" class="modal-btn" type="button"></button>
+    </div>
+  </div>
+</div>
+
+<!-- Password prompt / password change modal -->
+<div id="password-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+  <div class="modal-card">
+    <div class="modal-title" id="password-title"></div>
+    <div class="modal-message" id="password-message"></div>
+    <div class="password-fields">
+      <input type="password" id="password-current" maxlength="64" autocomplete="current-password">
+      <input type="password" id="password-new" maxlength="64" autocomplete="new-password">
+      <input type="password" id="password-confirm" maxlength="64" autocomplete="new-password">
+      <p id="password-error" class="password-error hidden"></p>
+    </div>
+    <div class="modal-actions">
+      <button id="password-ok" class="modal-btn primary" type="button"></button>
+      <button id="password-cancel" class="modal-btn" type="button"></button>
     </div>
   </div>
 </div>

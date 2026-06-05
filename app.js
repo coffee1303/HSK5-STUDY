@@ -1,9 +1,131 @@
 // HSK Study App
+// Profile-scoped storage keys (prefixed at access time via pk())
 const KEY_SETTINGS = 'hsk-settings';
 const KEY_WRONG = 'hsk-wrong';
 const KEY_PROGRESS = 'hsk-progress';
 const KEY_HISTORY = 'hsk-study-history';
 const KEY_QUIZ_SAVE = 'hsk-quiz-saved';
+const KEY_AUTH = 'hsk-auth';
+
+// Global (un-prefixed) keys for profile management
+const KEY_PROFILES_LIST = 'hsk-profiles';
+const KEY_CURRENT_PROFILE = 'hsk-current-profile';
+
+let currentProfile = null;
+
+function pk(base) {
+  // Returns the profile-prefixed storage key, e.g. "alice::hsk-settings"
+  return (currentProfile || 'default') + '::' + base;
+}
+
+function getProfiles() {
+  try {
+    const list = JSON.parse(localStorage.getItem(KEY_PROFILES_LIST));
+    return Array.isArray(list) ? list : [];
+  } catch { return []; }
+}
+
+function saveProfilesList(list) {
+  localStorage.setItem(KEY_PROFILES_LIST, JSON.stringify(list));
+}
+
+function createProfile(name) {
+  const trimmed = (name || '').trim();
+  if (!trimmed) return { ok: false, reason: 'empty' };
+  if (trimmed.length > 20) return { ok: false, reason: 'tooLong' };
+  const list = getProfiles();
+  if (list.includes(trimmed)) return { ok: false, reason: 'duplicate' };
+  const isFirstProfile = list.length === 0;
+  list.push(trimmed);
+  saveProfilesList(list);
+
+  const legacyKeys = [KEY_SETTINGS, KEY_WRONG, KEY_PROGRESS, KEY_HISTORY, KEY_QUIZ_SAVE];
+  let migratedSettings = false;
+  if (isFirstProfile) {
+    legacyKeys.forEach(k => {
+      const v = localStorage.getItem(k);
+      if (v === null) return;
+      localStorage.setItem(trimmed + '::' + k, v);
+      localStorage.removeItem(k);
+      if (k === KEY_SETTINGS) migratedSettings = true;
+    });
+  }
+  if (!migratedSettings) {
+    // Seed the new profile with default settings but carry over the language
+    // chosen on the login screen so users don't have to re-pick it.
+    const seed = { ...defaultSettings, language: state.settings.language };
+    localStorage.setItem(trimmed + '::' + KEY_SETTINGS, JSON.stringify(seed));
+  }
+  return { ok: true };
+}
+
+function deleteProfile(name) {
+  const list = getProfiles().filter(p => p !== name);
+  saveProfilesList(list);
+  [KEY_SETTINGS, KEY_WRONG, KEY_PROGRESS, KEY_HISTORY, KEY_QUIZ_SAVE, KEY_AUTH].forEach(k => {
+    localStorage.removeItem(name + '::' + k);
+  });
+  if (currentProfile === name) {
+    currentProfile = null;
+    localStorage.removeItem(KEY_CURRENT_PROFILE);
+  }
+}
+
+function selectProfile(name) {
+  currentProfile = name;
+  localStorage.setItem(KEY_CURRENT_PROFILE, name);
+}
+
+function logout() {
+  currentProfile = null;
+  localStorage.removeItem(KEY_CURRENT_PROFILE);
+}
+
+// ----- Password auth -----
+// Polite lock only — anyone with DevTools access can bypass localStorage.
+// We hash (SHA-256) with a random per-profile salt to avoid storing plaintext.
+
+function _randomSaltHex(bytes = 16) {
+  const arr = new Uint8Array(bytes);
+  crypto.getRandomValues(arr);
+  return Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function _hashPassword(password, saltHex) {
+  const enc = new TextEncoder();
+  const data = enc.encode(saltHex + ':' + password);
+  const buf = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function getAuthRecord(name) {
+  try {
+    const v = JSON.parse(localStorage.getItem(name + '::' + KEY_AUTH));
+    if (v && typeof v.salt === 'string' && typeof v.hash === 'string') return v;
+  } catch {}
+  return null;
+}
+
+function hasPassword(name) {
+  return getAuthRecord(name) !== null;
+}
+
+async function setPasswordFor(name, password) {
+  if (!password) {
+    localStorage.removeItem(name + '::' + KEY_AUTH);
+    return;
+  }
+  const salt = _randomSaltHex();
+  const hash = await _hashPassword(password, salt);
+  localStorage.setItem(name + '::' + KEY_AUTH, JSON.stringify({ salt, hash }));
+}
+
+async function verifyPassword(name, password) {
+  const rec = getAuthRecord(name);
+  if (!rec) return true; // no password set
+  const hash = await _hashPassword(password, rec.salt);
+  return hash === rec.hash;
+}
 
 const defaultSettings = {
   dailyCount: 20,
@@ -84,6 +206,9 @@ function applyI18n() {
   document.querySelectorAll('[data-i18n-attr-aria-label]').forEach(el => {
     el.setAttribute('aria-label', t(el.dataset.i18nAttrAriaLabel));
   });
+  document.querySelectorAll('[data-i18n-attr-placeholder]').forEach(el => {
+    el.setAttribute('placeholder', t(el.dataset.i18nAttrPlaceholder));
+  });
   document.title = t('siteTitle');
   document.documentElement.lang = state.settings.language || 'ko';
 }
@@ -96,7 +221,9 @@ function updateLangButtons() {
 
 function setLanguage(lang) {
   state.settings.language = lang;
-  saveSettings();
+  // Only persist when logged into a profile — on the login screen, the choice
+  // is kept in-memory and carried over when the user creates a profile.
+  if (currentProfile) saveSettings();
   applyI18n();
   updateLangButtons();
   // Re-render current screen so dynamic content updates
@@ -104,6 +231,7 @@ function setLanguage(lang) {
   if (active) {
     const id = active.id;
     if (id === 'home') renderHome();
+    else if (id === 'login') renderLogin();
     else if (id === 'study') renderStudy();
     else if (id === 'quiz') renderQuiz();
     else if (id === 'review') renderReview();
@@ -188,30 +316,35 @@ const state = {
 };
 
 function load() {
+  // Reset to defaults first so switching profiles doesn't bleed prior state
+  state.settings = { ...defaultSettings };
+  state.wrong = [];
+  state.progress = { basic: [], hsk5: [] };
+  state.studyHistory = [];
   try {
-    const s = JSON.parse(localStorage.getItem(KEY_SETTINGS));
+    const s = JSON.parse(localStorage.getItem(pk(KEY_SETTINGS)));
     if (s) state.settings = { ...defaultSettings, ...s };
   } catch {}
   try {
-    const w = JSON.parse(localStorage.getItem(KEY_WRONG));
+    const w = JSON.parse(localStorage.getItem(pk(KEY_WRONG)));
     if (Array.isArray(w)) state.wrong = w;
   } catch {}
   try {
-    const p = JSON.parse(localStorage.getItem(KEY_PROGRESS));
+    const p = JSON.parse(localStorage.getItem(pk(KEY_PROGRESS)));
     if (p && typeof p === 'object') {
       state.progress = { basic: p.basic || [], hsk5: p.hsk5 || [] };
     }
   } catch {}
   try {
-    const h = JSON.parse(localStorage.getItem(KEY_HISTORY));
+    const h = JSON.parse(localStorage.getItem(pk(KEY_HISTORY)));
     if (Array.isArray(h)) state.studyHistory = h;
   } catch {}
 }
 
-function saveSettings() { localStorage.setItem(KEY_SETTINGS, JSON.stringify(state.settings)); }
-function saveWrong() { localStorage.setItem(KEY_WRONG, JSON.stringify(state.wrong)); }
-function saveProgress() { localStorage.setItem(KEY_PROGRESS, JSON.stringify(state.progress)); }
-function saveStudyHistory() { localStorage.setItem(KEY_HISTORY, JSON.stringify(state.studyHistory)); }
+function saveSettings() { localStorage.setItem(pk(KEY_SETTINGS), JSON.stringify(state.settings)); }
+function saveWrong() { localStorage.setItem(pk(KEY_WRONG), JSON.stringify(state.wrong)); }
+function saveProgress() { localStorage.setItem(pk(KEY_PROGRESS), JSON.stringify(state.progress)); }
+function saveStudyHistory() { localStorage.setItem(pk(KEY_HISTORY), JSON.stringify(state.studyHistory)); }
 
 function getStartOfToday() {
   const d = new Date();
@@ -245,12 +378,12 @@ function saveQuizState(indexOverride) {
     mode: state.quizMode,
     savedAt: Date.now(),
   };
-  localStorage.setItem(KEY_QUIZ_SAVE, JSON.stringify(data));
+  localStorage.setItem(pk(KEY_QUIZ_SAVE), JSON.stringify(data));
 }
 
 function loadSavedQuiz() {
   try {
-    const data = JSON.parse(localStorage.getItem(KEY_QUIZ_SAVE));
+    const data = JSON.parse(localStorage.getItem(pk(KEY_QUIZ_SAVE)));
     if (!data || !Array.isArray(data.words) || data.words.length === 0) return null;
     if (typeof data.index !== 'number' || data.index >= data.words.length) return null;
     return data;
@@ -258,7 +391,7 @@ function loadSavedQuiz() {
 }
 
 function clearSavedQuiz() {
-  localStorage.removeItem(KEY_QUIZ_SAVE);
+  localStorage.removeItem(pk(KEY_QUIZ_SAVE));
 }
 
 function resumeQuiz() {
@@ -309,6 +442,8 @@ function pickQuizWords(pool, count) {
 
 function renderHome() {
   applyI18n();
+  const nameEl = $('#home-profile-name');
+  if (nameEl) nameEl.textContent = currentProfile || '';
   const saved = loadSavedQuiz();
   const resumeBtn = $('#resume-quiz-btn');
   if (resumeBtn) {
@@ -320,6 +455,131 @@ function renderHome() {
       resumeBtn.classList.add('hidden');
     }
   }
+}
+
+function renderLogin() {
+  applyI18n();
+  const list = getProfiles();
+  const listEl = $('#profile-list');
+  const emptyEl = $('#profile-empty');
+  listEl.innerHTML = '';
+  if (list.length === 0) {
+    emptyEl.classList.remove('hidden');
+  } else {
+    emptyEl.classList.add('hidden');
+    list.forEach(name => {
+      const row = document.createElement('div');
+      row.className = 'profile-item';
+      const selectBtn = document.createElement('button');
+      const locked = hasPassword(name);
+      selectBtn.className = 'profile-item-select' + (locked ? ' locked' : '');
+      selectBtn.type = 'button';
+      selectBtn.innerHTML = (locked ? '<span class="lock-icon" aria-hidden="true">🔒</span>' : '') +
+        '<span>' + escapeHTML(name) + '</span>';
+      selectBtn.onclick = () => tryEnterProfile(name);
+      const delBtn = document.createElement('button');
+      delBtn.className = 'profile-item-delete';
+      delBtn.type = 'button';
+      delBtn.textContent = t('loginDelete');
+      delBtn.onclick = async () => {
+        const ok = await customConfirm(
+          t('confirmDeleteProfile', { name }),
+          { okText: t('btnDelete'), cancelText: t('btnCancel') }
+        );
+        if (!ok) return;
+        deleteProfile(name);
+        renderLogin();
+      };
+      row.appendChild(selectBtn);
+      row.appendChild(delBtn);
+      listEl.appendChild(row);
+    });
+  }
+  const nameInput = $('#new-profile-name');
+  if (nameInput) nameInput.value = '';
+  const pwInput = $('#new-profile-password');
+  if (pwInput) pwInput.value = '';
+}
+
+function escapeHTML(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
+async function tryEnterProfile(name) {
+  if (hasPassword(name)) {
+    const pw = await passwordPrompt({
+      title: t('passwordEnterTitle'),
+      message: t('passwordEnterMessage', { name }),
+      mode: 'enter',
+      verify: async (input) => await verifyPassword(name, input),
+    });
+    if (pw === null) return; // cancelled
+  }
+  enterProfile(name);
+}
+
+function enterProfile(name) {
+  selectProfile(name);
+  load();
+  applyFontSize(state.settings.fontSize);
+  applyI18n();
+  updateLangButtons();
+  showScreen('home');
+  renderHome();
+}
+
+async function handleAddProfile() {
+  const nameInput = $('#new-profile-name');
+  const pwInput = $('#new-profile-password');
+  const name = nameInput.value;
+  const password = pwInput ? pwInput.value : '';
+  const res = createProfile(name);
+  if (!res.ok) {
+    if (res.reason === 'empty') alert(t('alertProfileEmpty'));
+    else if (res.reason === 'duplicate') alert(t('alertProfileDuplicate'));
+    else if (res.reason === 'tooLong') alert(t('alertProfileTooLong'));
+    return;
+  }
+  const trimmed = name.trim();
+  if (password) {
+    await setPasswordFor(trimmed, password);
+  }
+  enterProfile(trimmed);
+}
+
+async function handleChangePassword() {
+  if (!currentProfile) return;
+  const had = hasPassword(currentProfile);
+  await passwordPrompt({
+    title: t(had ? 'passwordChangeTitle' : 'passwordSetTitle'),
+    message: t(had ? 'passwordChangeMessage' : 'passwordSetMessage'),
+    mode: had ? 'change' : 'set',
+    verify: had ? async (input) => await verifyPassword(currentProfile, input) : null,
+    onSubmit: async (newPw) => {
+      await setPasswordFor(currentProfile, newPw);
+    },
+  });
+}
+
+async function handleSwitchProfile() {
+  // Save anything pending then return to login
+  logout();
+  showScreen('login');
+  renderLogin();
+}
+
+async function handleDeleteCurrentProfile() {
+  if (!currentProfile) return;
+  const ok = await customConfirm(
+    t('confirmDeleteProfile', { name: currentProfile }),
+    { okText: t('btnDelete'), cancelText: t('btnCancel') }
+  );
+  if (!ok) return;
+  deleteProfile(currentProfile);
+  showScreen('login');
+  renderLogin();
 }
 
 // ========= STUDY =========
@@ -765,6 +1025,104 @@ function customConfirm(message, options) {
   });
 }
 
+// Password prompt modal. Supports three modes:
+//  - 'enter'  : ask for password, call opts.verify(input) → boolean, resolves to input on success / null on cancel
+//  - 'set'    : ask for new password + confirm, call opts.onSubmit(newPw)
+//  - 'change' : ask for current + new + confirm; verify current then onSubmit(newPw). New password may be empty to remove.
+function passwordPrompt(opts) {
+  return new Promise(resolve => {
+    const modal = $('#password-modal');
+    const titleEl = $('#password-title');
+    const msgEl = $('#password-message');
+    const cur = $('#password-current');
+    const ne = $('#password-new');
+    const cf = $('#password-confirm');
+    const err = $('#password-error');
+    const okBtn = $('#password-ok');
+    const cancelBtn = $('#password-cancel');
+
+    titleEl.textContent = opts.title || '';
+    msgEl.textContent = opts.message || '';
+    cur.value = ''; ne.value = ''; cf.value = '';
+    err.classList.add('hidden');
+    err.textContent = '';
+
+    const showField = (el, show) => { el.classList.toggle('hidden', !show); };
+    if (opts.mode === 'enter') {
+      showField(cur, true);
+      cur.placeholder = t('passwordFieldPassword');
+      showField(ne, false);
+      showField(cf, false);
+      okBtn.textContent = t('btnConfirm');
+    } else if (opts.mode === 'set') {
+      showField(cur, false);
+      showField(ne, true);
+      showField(cf, true);
+      ne.placeholder = t('passwordFieldNew');
+      cf.placeholder = t('passwordFieldConfirm');
+      okBtn.textContent = t('btnSave');
+    } else if (opts.mode === 'change') {
+      showField(cur, true);
+      showField(ne, true);
+      showField(cf, true);
+      cur.placeholder = t('passwordFieldCurrent');
+      ne.placeholder = t('passwordFieldNewOrEmpty');
+      cf.placeholder = t('passwordFieldConfirm');
+      okBtn.textContent = t('btnSave');
+    }
+    cancelBtn.textContent = t('btnCancel');
+
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+      (opts.mode === 'set' ? ne : cur).focus();
+    }, 50);
+
+    const showErr = (msg) => { err.textContent = msg; err.classList.remove('hidden'); };
+    const cleanup = (result) => {
+      modal.classList.add('hidden');
+      okBtn.onclick = null;
+      cancelBtn.onclick = null;
+      [cur, ne, cf].forEach(el => { el.onkeydown = null; });
+      resolve(result);
+    };
+
+    const submit = async () => {
+      err.classList.add('hidden');
+      if (opts.mode === 'enter') {
+        const input = cur.value;
+        const ok = await opts.verify(input);
+        if (!ok) { showErr(t('passwordWrong')); return; }
+        cleanup(input);
+        return;
+      }
+      if (opts.mode === 'change' && opts.verify) {
+        const ok = await opts.verify(cur.value);
+        if (!ok) { showErr(t('passwordWrong')); return; }
+      }
+      const newPw = ne.value;
+      if (opts.mode === 'set' && !newPw) {
+        showErr(t('passwordEmpty'));
+        return;
+      }
+      if (newPw !== cf.value) {
+        showErr(t('passwordMismatch'));
+        return;
+      }
+      if (opts.onSubmit) await opts.onSubmit(newPw);
+      cleanup(true);
+    };
+
+    okBtn.onclick = submit;
+    cancelBtn.onclick = () => cleanup(null);
+    [cur, ne, cf].forEach(el => {
+      el.onkeydown = (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); submit(); }
+        else if (e.key === 'Escape') { e.preventDefault(); cleanup(null); }
+      };
+    });
+  });
+}
+
 async function handleQuizBack() {
   const effectiveIdx = state.quizAnswered ? state.quizIndex + 1 : state.quizIndex;
   const stillInProgress = state.quizWords.length > 0 && effectiveIdx < state.quizWords.length;
@@ -876,6 +1234,17 @@ function bindEvents() {
   $('#studied-quiz').onclick = startStudiedQuiz;
   $('#save-settings').onclick = saveSettingsForm;
   $('#reset-progress').onclick = resetProgress;
+  $('#add-profile').onclick = handleAddProfile;
+  $('#new-profile-name').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); handleAddProfile(); }
+  });
+  $('#home-profile-switch').onclick = handleSwitchProfile;
+  $('#switch-profile').onclick = handleSwitchProfile;
+  $('#delete-profile').onclick = handleDeleteCurrentProfile;
+  $('#change-password').onclick = handleChangePassword;
+  $('#new-profile-password').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); handleAddProfile(); }
+  });
 
   $('#study-audio').onclick = () => {
     const w = state.studyWords[state.studyIndex];
@@ -898,12 +1267,26 @@ function init() {
     document.body.innerHTML = '<p style="padding:20px;color:red;">vocabulary.js 파일을 불러오지 못했습니다 / Failed to load vocabulary.js</p>';
     return;
   }
-  load();
-  applyFontSize(state.settings.fontSize);
-  applyI18n();
-  updateLangButtons();
   bindEvents();
-  renderHome();
+  // Restore last active profile only if it still exists
+  const savedCurrent = localStorage.getItem(KEY_CURRENT_PROFILE);
+  const profiles = getProfiles();
+  if (savedCurrent && profiles.includes(savedCurrent)) {
+    currentProfile = savedCurrent;
+    load();
+    applyFontSize(state.settings.fontSize);
+    applyI18n();
+    updateLangButtons();
+    showScreen('home');
+    renderHome();
+  } else {
+    // No active profile — show login. Use defaults until a profile is chosen.
+    applyFontSize(state.settings.fontSize);
+    applyI18n();
+    updateLangButtons();
+    showScreen('login');
+    renderLogin();
+  }
 }
 
 init();
