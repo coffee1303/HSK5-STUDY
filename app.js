@@ -6,6 +6,8 @@ const KEY_PROGRESS = 'hsk-progress';
 const KEY_HISTORY = 'hsk-study-history';
 const KEY_QUIZ_SAVE = 'hsk-quiz-saved';
 const KEY_AUTH = 'hsk-auth';
+const KEY_EXAM_SAVE = 'hsk-exam-saved';
+const KEY_EXAM_AUDIO = 'hsk-exam-audio-url';
 
 // Global (un-prefixed) keys for profile management
 const KEY_PROFILES_LIST = 'hsk-profiles';
@@ -231,6 +233,11 @@ function setLanguage(lang) {
   if (active) {
     const id = active.id;
     if (id === 'home') renderHome();
+    else if (id === 'study-hub') renderStudyHub();
+    else if (id === 'exam-list') renderExamList();
+    else if (id === 'exam-listening') renderExamListening();
+    else if (id === 'exam-reading') renderExamReading();
+    else if (id === 'exam-writing') renderExamWriting();
     else if (id === 'login') renderLogin();
     else if (id === 'study') renderStudy();
     else if (id === 'quiz') renderQuiz();
@@ -444,6 +451,10 @@ function renderHome() {
   applyI18n();
   const nameEl = $('#home-profile-name');
   if (nameEl) nameEl.textContent = currentProfile || '';
+}
+
+function renderStudyHub() {
+  applyI18n();
   const saved = loadSavedQuiz();
   const resumeBtn = $('#resume-quiz-btn');
   if (resumeBtn) {
@@ -1136,8 +1147,8 @@ async function handleQuizBack() {
   } else {
     clearSavedQuiz();
   }
-  showScreen('home');
-  renderHome();
+  showScreen('study-hub');
+  renderStudyHub();
 }
 
 async function clearWrong() {
@@ -1199,6 +1210,431 @@ async function resetProgress() {
   alert(t('alertReset'));
 }
 
+// ========= MOCK EXAM =========
+const examState = {
+  exam: null,           // EXAM_H51008 object
+  section: null,        // 'listening' | 'reading' | 'writing'
+  index: 0,             // index within flat question list for current section
+  answers: {},          // { [qId]: 'A'|'B'|'C'|'D' } for objective; string for writing
+  audioUrl: '',
+  startedAt: null,
+};
+
+function getExamList() {
+  if (typeof window.EXAMS !== 'object' || !window.EXAMS) return [];
+  return Object.values(window.EXAMS);
+}
+
+function flatListeningQuestions(exam) {
+  return [...exam.listening.part1, ...exam.listening.part2];
+}
+
+function flatReadingQuestions(exam) {
+  const out = [];
+  exam.reading.part1.forEach(pg => pg.questions.forEach(q => out.push({ ...q, _passage: pg.passage, _part: 1 })));
+  exam.reading.part2.forEach(q => out.push({ ...q, _passage: q.passage, _part: 2 }));
+  exam.reading.part3.forEach(pg => pg.questions.forEach(q => out.push({ ...q, _passage: pg.passage, _part: 3 })));
+  return out;
+}
+
+function flatWritingQuestions(exam) {
+  return [...exam.writing.part1.map(q => ({ ...q, _part: 1 })),
+          ...exam.writing.part2.map(q => ({ ...q, _part: 2 }))];
+}
+
+function saveExamState() {
+  if (!examState.exam) return;
+  const data = {
+    examId: examState.exam.id,
+    section: examState.section,
+    index: examState.index,
+    answers: examState.answers,
+    startedAt: examState.startedAt,
+  };
+  localStorage.setItem(pk(KEY_EXAM_SAVE), JSON.stringify(data));
+}
+
+function loadExamSave() {
+  try {
+    const data = JSON.parse(localStorage.getItem(pk(KEY_EXAM_SAVE)));
+    if (data && data.examId && window.EXAMS && window.EXAMS[data.examId]) return data;
+  } catch {}
+  return null;
+}
+
+function clearExamSave() {
+  localStorage.removeItem(pk(KEY_EXAM_SAVE));
+}
+
+function getSavedAudioUrl() {
+  return localStorage.getItem(pk(KEY_EXAM_AUDIO)) || '';
+}
+function saveAudioUrl(url) {
+  if (url) localStorage.setItem(pk(KEY_EXAM_AUDIO), url);
+  else localStorage.removeItem(pk(KEY_EXAM_AUDIO));
+}
+
+function renderExamList() {
+  applyI18n();
+  const listEl = $('#exam-list-items');
+  listEl.innerHTML = '';
+  const list = getExamList();
+  list.forEach(exam => {
+    const card = document.createElement('button');
+    card.className = 'exam-list-card';
+    card.type = 'button';
+    card.innerHTML = `
+      <span class="exam-list-code">${escapeHTML(exam.code)}</span>
+      <span class="exam-list-title">${escapeHTML(exam.title)}</span>
+      <span class="exam-list-meta" data-i18n="examListMeta">100문항 · 듣기/독해/쓰기</span>
+    `;
+    card.onclick = () => openExamIntro(exam);
+    listEl.appendChild(card);
+  });
+}
+
+function openExamIntro(exam) {
+  examState.exam = exam;
+  $('#exam-intro-title').textContent = exam.title;
+  const saved = loadExamSave();
+  const progressCard = $('#exam-progress-card');
+  if (saved && saved.examId === exam.id) {
+    progressCard.classList.remove('hidden');
+  } else {
+    progressCard.classList.add('hidden');
+  }
+  const audioInput = $('#exam-audio-url');
+  audioInput.value = getSavedAudioUrl() || exam.audioUrl || '';
+  showScreen('exam-intro');
+  applyI18n();
+}
+
+function startExam(resume) {
+  const exam = examState.exam;
+  if (!exam) return;
+  if (resume) {
+    const saved = loadExamSave();
+    if (saved && saved.examId === exam.id) {
+      examState.section = saved.section || 'listening';
+      examState.index = saved.index || 0;
+      examState.answers = saved.answers || {};
+      examState.startedAt = saved.startedAt || Date.now();
+    }
+  } else {
+    examState.section = 'listening';
+    examState.index = 0;
+    examState.answers = {};
+    examState.startedAt = Date.now();
+    clearExamSave();
+  }
+  // Save audio URL the user typed
+  const url = $('#exam-audio-url').value.trim();
+  saveAudioUrl(url);
+  examState.audioUrl = url;
+  enterExamSection(examState.section, examState.index);
+}
+
+function enterExamSection(section, index) {
+  examState.section = section;
+  examState.index = index || 0;
+  if (section === 'listening') { showScreen('exam-listening'); renderExamListening(); }
+  else if (section === 'reading') { showScreen('exam-reading'); renderExamReading(); }
+  else if (section === 'writing') { showScreen('exam-writing'); renderExamWriting(); }
+}
+
+function renderExamListening() {
+  const exam = examState.exam;
+  const questions = flatListeningQuestions(exam);
+  const q = questions[examState.index];
+  $('#exam-listening-progress').textContent = `${examState.index + 1} / ${questions.length}`;
+  const card = $('#exam-listening-card');
+  const partLabel = examState.index < exam.listening.part1.length ? t('examListeningPart1') : t('examListeningPart2');
+  const selected = examState.answers[q.id] || '';
+  card.innerHTML = `
+    <div class="exam-q-header">
+      <span class="exam-q-part">${escapeHTML(partLabel)}</span>
+      <span class="exam-q-no">第 ${q.id} 题</span>
+    </div>
+    <div class="exam-q-instructions" data-i18n="examListeningInstruction">음성을 듣고 정답을 선택하세요.</div>
+    ${renderOptionsHTML(q.id, q.options, selected)}
+    <details class="exam-transcript">
+      <summary data-i18n="examShowTranscript">스크립트 보기</summary>
+      <pre class="exam-transcript-body">${escapeHTML(q.transcript || '')}</pre>
+    </details>
+  `;
+  applyI18n();
+  bindOptionClicks(card, q.id);
+  $('#exam-listening-prev').disabled = examState.index === 0;
+  $('#exam-listening-next').textContent = (examState.index === questions.length - 1) ? t('examGoReading') : t('next');
+  saveExamState();
+}
+
+function renderExamReading() {
+  const exam = examState.exam;
+  const questions = flatReadingQuestions(exam);
+  const q = questions[examState.index];
+  $('#exam-reading-progress').textContent = `${examState.index + 1} / ${questions.length}`;
+  const card = $('#exam-reading-card');
+  const selected = examState.answers[q.id] || '';
+  const partLabel = q._part === 1 ? t('examReadingPart1')
+                  : q._part === 2 ? t('examReadingPart2')
+                  : t('examReadingPart3');
+  const prompt = q.prompt ? `<div class="exam-q-prompt">${escapeHTML(q.prompt)}</div>` : '';
+  card.innerHTML = `
+    <div class="exam-q-header">
+      <span class="exam-q-part">${escapeHTML(partLabel)}</span>
+      <span class="exam-q-no">第 ${q.id} 题</span>
+    </div>
+    <div class="exam-passage">${escapeHTML(q._passage || '').replace(/\n/g, '<br>')}</div>
+    ${prompt}
+    ${renderOptionsHTML(q.id, q.options, selected)}
+  `;
+  bindOptionClicks(card, q.id);
+  $('#exam-reading-prev').disabled = examState.index === 0;
+  $('#exam-reading-next').textContent = (examState.index === questions.length - 1) ? t('examGoWriting') : t('next');
+  saveExamState();
+}
+
+function renderExamWriting() {
+  const exam = examState.exam;
+  const questions = flatWritingQuestions(exam);
+  const q = questions[examState.index];
+  $('#exam-writing-progress').textContent = `${examState.index + 1} / ${questions.length}`;
+  const card = $('#exam-writing-card');
+  const current = examState.answers[q.id] || '';
+  if (q._part === 1) {
+    card.innerHTML = `
+      <div class="exam-q-header">
+        <span class="exam-q-part">${escapeHTML(t('examWritingPart1'))}</span>
+        <span class="exam-q-no">第 ${q.id} 题</span>
+      </div>
+      <div class="exam-q-prompt" data-i18n="examWritingPart1Instruction">제시된 단어를 올바른 순서로 배열하여 문장을 완성하세요.</div>
+      <div class="exam-words">${q.words.map(w => `<span class="exam-word-chip">${escapeHTML(w)}</span>`).join('')}</div>
+      <textarea class="exam-input" rows="2" data-q-input="${q.id}" placeholder="문장을 입력하세요">${escapeHTML(current)}</textarea>
+    `;
+  } else {
+    const imageHTML = q.type === 'image'
+      ? `<div class="exam-q-image"><span class="exam-q-image-emoji">${q.imageEmoji || '🖼️'}</span><span class="exam-q-image-alt">${escapeHTML(q.imageAlt || '')}</span></div>`
+      : '';
+    const wordsHTML = q.type === 'words'
+      ? `<div class="exam-words">${q.words.map(w => `<span class="exam-word-chip">${escapeHTML(w)}</span>`).join('')}</div>`
+      : '';
+    card.innerHTML = `
+      <div class="exam-q-header">
+        <span class="exam-q-part">${escapeHTML(t('examWritingPart2'))}</span>
+        <span class="exam-q-no">第 ${q.id} 题</span>
+      </div>
+      <div class="exam-q-prompt">${escapeHTML(q.prompt)}</div>
+      ${imageHTML}
+      ${wordsHTML}
+      <textarea class="exam-input" rows="6" data-q-input="${q.id}" placeholder="80자 정도의 짧은 글을 작성하세요">${escapeHTML(current)}</textarea>
+    `;
+  }
+  applyI18n();
+  bindInputChanges(card);
+  $('#exam-writing-prev').disabled = examState.index === 0;
+  $('#exam-writing-next').textContent = (examState.index === questions.length - 1) ? t('examSubmit') : t('next');
+  saveExamState();
+}
+
+function renderOptionsHTML(qid, options, selected) {
+  return `<div class="exam-options">
+    ${['A','B','C','D'].map(letter => {
+      const v = options[letter];
+      if (v == null) return '';
+      const sel = letter === selected ? ' selected' : '';
+      return `<button class="exam-option${sel}" data-q="${qid}" data-letter="${letter}" type="button">
+        <span class="exam-option-letter">${letter}</span>
+        <span class="exam-option-text">${escapeHTML(v)}</span>
+      </button>`;
+    }).join('')}
+  </div>`;
+}
+
+function bindOptionClicks(card, qid) {
+  card.querySelectorAll('.exam-option').forEach(btn => {
+    btn.onclick = () => {
+      examState.answers[qid] = btn.dataset.letter;
+      card.querySelectorAll('.exam-option').forEach(b => b.classList.toggle('selected', b === btn));
+      saveExamState();
+    };
+  });
+}
+
+function bindInputChanges(card) {
+  card.querySelectorAll('[data-q-input]').forEach(el => {
+    el.oninput = () => {
+      const qid = parseInt(el.dataset.qInput);
+      examState.answers[qid] = el.value;
+      saveExamState();
+    };
+  });
+}
+
+function nextExamItem() {
+  const sec = examState.section;
+  const exam = examState.exam;
+  const total = sec === 'listening' ? flatListeningQuestions(exam).length
+              : sec === 'reading' ? flatReadingQuestions(exam).length
+              : flatWritingQuestions(exam).length;
+  if (examState.index < total - 1) {
+    examState.index++;
+    if (sec === 'listening') renderExamListening();
+    else if (sec === 'reading') renderExamReading();
+    else renderExamWriting();
+    return;
+  }
+  // End of section → move on
+  if (sec === 'listening') enterExamSection('reading', 0);
+  else if (sec === 'reading') enterExamSection('writing', 0);
+  else submitExam();
+}
+
+function prevExamItem() {
+  if (examState.index <= 0) return;
+  examState.index--;
+  const sec = examState.section;
+  if (sec === 'listening') renderExamListening();
+  else if (sec === 'reading') renderExamReading();
+  else renderExamWriting();
+}
+
+async function handleExamExit() {
+  const ok = await customConfirm(t('examConfirmExit'),
+    { okText: t('btnSave'), cancelText: t('btnCancel') });
+  if (ok) {
+    saveExamState();
+  } else {
+    clearExamSave();
+  }
+  showScreen('exam-list');
+  renderExamList();
+}
+
+function gradeExam() {
+  const exam = examState.exam;
+  const ans = examState.answers;
+  let lCorrect = 0, lTotal = 0;
+  flatListeningQuestions(exam).forEach(q => {
+    lTotal++;
+    if (ans[q.id] === q.answer) lCorrect++;
+  });
+  let rCorrect = 0, rTotal = 0;
+  flatReadingQuestions(exam).forEach(q => {
+    rTotal++;
+    if (ans[q.id] === q.answer) rCorrect++;
+  });
+  let wCorrect = 0, wTotal = 0;
+  exam.writing.part1.forEach(q => {
+    wTotal++;
+    const submitted = (ans[q.id] || '').replace(/\s+/g, '').replace(/[。.]$/, '');
+    const expected = q.answer.replace(/\s+/g, '').replace(/[。.]$/, '');
+    if (submitted === expected) wCorrect++;
+  });
+  return { lCorrect, lTotal, rCorrect, rTotal, wCorrect, wTotal };
+}
+
+function submitExam() {
+  const r = gradeExam();
+  $('#result-listening-correct').textContent = r.lCorrect;
+  $('#result-listening-total').textContent = r.lTotal;
+  $('#result-reading-correct').textContent = r.rCorrect;
+  $('#result-reading-total').textContent = r.rTotal;
+  $('#result-writing-correct').textContent = r.wCorrect;
+  $('#result-writing-total').textContent = r.wTotal;
+  $('#result-objective-correct').textContent = r.lCorrect + r.rCorrect + r.wCorrect;
+  $('#result-objective-total').textContent = r.lTotal + r.rTotal + r.wTotal;
+  $('#exam-review').classList.add('hidden');
+  $('#exam-review-toggle').textContent = t('examReviewToggle');
+  clearExamSave();
+  showScreen('exam-result');
+  applyI18n();
+}
+
+function buildReviewHTML() {
+  const exam = examState.exam;
+  const ans = examState.answers;
+  const sections = [];
+  // Listening
+  const lAll = flatListeningQuestions(exam);
+  sections.push({ title: t('examSecListening'), items: lAll.map(q => ({
+    id: q.id, type: 'objective', options: q.options, correct: q.answer, picked: ans[q.id]
+  })) });
+  // Reading
+  const rAll = flatReadingQuestions(exam);
+  sections.push({ title: t('examSecReading'), items: rAll.map(q => ({
+    id: q.id, type: 'objective', options: q.options, correct: q.answer, picked: ans[q.id], prompt: q.prompt
+  })) });
+  // Writing
+  sections.push({ title: t('examSecWriting'), items: [
+    ...exam.writing.part1.map(q => ({ id: q.id, type: 'writing-short', expected: q.answer, picked: ans[q.id] || '' })),
+    ...exam.writing.part2.map(q => ({ id: q.id, type: 'writing-essay', prompt: q.prompt, picked: ans[q.id] || '' })),
+  ]});
+  return sections.map(sec => `
+    <div class="exam-review-section">
+      <h3>${escapeHTML(sec.title)}</h3>
+      ${sec.items.map(it => {
+        if (it.type === 'objective') {
+          const isCorrect = it.picked === it.correct;
+          const correctText = it.options[it.correct] || '';
+          const pickedText = it.picked ? (it.options[it.picked] || '') : t('examNoAnswer');
+          return `<div class="exam-review-item ${isCorrect ? 'ok' : 'bad'}">
+            <div class="exam-review-qno">第 ${it.id} 题</div>
+            ${it.prompt ? `<div class="exam-review-prompt">${escapeHTML(it.prompt)}</div>` : ''}
+            <div class="exam-review-line"><b>${t('examYourAnswer')}:</b> ${it.picked ? it.picked + '. ' : ''}${escapeHTML(pickedText)}</div>
+            <div class="exam-review-line"><b>${t('examCorrectAnswer')}:</b> ${it.correct}. ${escapeHTML(correctText)}</div>
+          </div>`;
+        } else if (it.type === 'writing-short') {
+          const sub = (it.picked || '').replace(/\s+/g, '').replace(/[。.]$/, '');
+          const exp = it.expected.replace(/\s+/g, '').replace(/[。.]$/, '');
+          const ok = sub === exp;
+          return `<div class="exam-review-item ${ok ? 'ok' : 'bad'}">
+            <div class="exam-review-qno">第 ${it.id} 题</div>
+            <div class="exam-review-line"><b>${t('examYourAnswer')}:</b> ${escapeHTML(it.picked || t('examNoAnswer'))}</div>
+            <div class="exam-review-line"><b>${t('examReferenceAnswer')}:</b> ${escapeHTML(it.expected)}</div>
+          </div>`;
+        } else {
+          return `<div class="exam-review-item">
+            <div class="exam-review-qno">第 ${it.id} 题</div>
+            <div class="exam-review-prompt">${escapeHTML(it.prompt)}</div>
+            <div class="exam-review-line"><b>${t('examYourAnswer')}:</b></div>
+            <pre class="exam-review-essay">${escapeHTML(it.picked || t('examNoAnswer'))}</pre>
+          </div>`;
+        }
+      }).join('')}
+    </div>
+  `).join('');
+}
+
+function toggleExamReview() {
+  const rev = $('#exam-review');
+  const btn = $('#exam-review-toggle');
+  if (rev.classList.contains('hidden')) {
+    rev.innerHTML = buildReviewHTML();
+    rev.classList.remove('hidden');
+    btn.textContent = t('examReviewHide');
+  } else {
+    rev.classList.add('hidden');
+    btn.textContent = t('examReviewToggle');
+  }
+}
+
+function openExamAudio() {
+  let url = examState.audioUrl || $('#exam-audio-url').value.trim() || getSavedAudioUrl();
+  if (!url) {
+    const inputUrl = prompt(t('examAudioPromptUrl'));
+    if (!inputUrl) return;
+    url = inputUrl.trim();
+    saveAudioUrl(url);
+    examState.audioUrl = url;
+  }
+  if (!/^https?:\/\//i.test(url)) {
+    alert(t('examAudioBadUrl'));
+    return;
+  }
+  window.open(url, '_blank', 'noopener');
+}
+
 // ========= EVENT BINDING =========
 function bindEvents() {
   document.body.addEventListener('click', (e) => {
@@ -1212,6 +1648,8 @@ function bindEvents() {
     const action = btn.dataset.action;
     switch (action) {
       case 'home': showScreen('home'); renderHome(); break;
+      case 'study-hub': showScreen('study-hub'); renderStudyHub(); break;
+      case 'exam-hub': showScreen('exam-list'); renderExamList(); break;
       case 'study-basic': startStudy('basic'); break;
       case 'study-5': startStudy('hsk5'); break;
       case 'quiz-basic': startQuiz('basic'); break;
@@ -1222,6 +1660,7 @@ function bindEvents() {
       case 'settings': showScreen('settings'); renderSettings(); break;
       case 'resume-quiz': resumeQuiz(); break;
       case 'quiz-back': handleQuizBack(); break;
+      case 'exam-exit': handleExamExit(); break;
     }
   });
 
@@ -1245,6 +1684,19 @@ function bindEvents() {
   $('#new-profile-password').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') { e.preventDefault(); handleAddProfile(); }
   });
+  // Exam wiring
+  $('#exam-start').onclick = () => startExam(false);
+  $('#exam-resume').onclick = () => startExam(true);
+  $('#exam-restart').onclick = () => startExam(false);
+  $('#exam-audio-open').onclick = openExamAudio;
+  $('#exam-listening-audio').onclick = openExamAudio;
+  $('#exam-listening-prev').onclick = prevExamItem;
+  $('#exam-listening-next').onclick = nextExamItem;
+  $('#exam-reading-prev').onclick = prevExamItem;
+  $('#exam-reading-next').onclick = nextExamItem;
+  $('#exam-writing-prev').onclick = prevExamItem;
+  $('#exam-writing-next').onclick = nextExamItem;
+  $('#exam-review-toggle').onclick = toggleExamReview;
 
   $('#study-audio').onclick = () => {
     const w = state.studyWords[state.studyIndex];

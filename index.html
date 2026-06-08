@@ -45,7 +45,30 @@
       <span class="home-profile-name" id="home-profile-name"></span>
       <button class="home-profile-switch" id="home-profile-switch" data-i18n="profileSwitch">전환</button>
     </div>
-    <h1 data-i18n="siteTitle">HSK 5급 단어 공부</h1>
+    <h1 data-i18n="siteTitle">HSK 5급 공부</h1>
+    <p class="subtitle" data-i18n="hubSubtitle">단어 학습과 모의시험을 선택하세요</p>
+    <div class="hub-grid">
+      <button class="hub-card primary" data-action="study-hub">
+        <span class="hub-icon" aria-hidden="true">📚</span>
+        <span class="hub-big" data-i18n="hubStudyBig">단어 공부</span>
+        <span class="hub-small" data-i18n="hubStudySmall">HSK 1~5급 단어 학습·퀴즈·복습</span>
+      </button>
+      <button class="hub-card" data-action="exam-hub">
+        <span class="hub-icon" aria-hidden="true">📝</span>
+        <span class="hub-big" data-i18n="hubExamBig">모의시험</span>
+        <span class="hub-small" data-i18n="hubExamSmall">HSK 5급 모의시험으로 실력 점검</span>
+      </button>
+    </div>
+    <div class="hub-actions">
+      <button class="ghost" data-action="settings" data-i18n="menuSettingsBig">설정</button>
+    </div>
+  </section>
+
+  <section id="study-hub" class="screen">
+    <header class="bar">
+      <button class="back" data-action="home" data-i18n="back">← 메인</button>
+      <h2 data-i18n="hubStudyBig">단어 공부</h2>
+    </header>
     <p class="subtitle" data-i18n="subtitle">기초(1~4급) 1193단어 · 5급 1298단어</p>
     <div class="menu">
       <button class="menu-btn primary hidden" data-action="resume-quiz" id="resume-quiz-btn">
@@ -80,16 +103,12 @@
         <span class="big" data-i18n="menuReviewBig">오답 복습</span>
         <span class="small" data-i18n="menuReviewSmall" data-i18n-vars="wrong-count">틀린 단어 <span id="wrong-count">0</span>개</span>
       </button>
-      <button class="menu-btn ghost" data-action="settings">
-        <span class="big" data-i18n="menuSettingsBig">설정</span>
-        <span class="small" data-i18n="menuSettingsSmall" data-i18n-vars="settings-display">하루 학습 단어 수: <span id="settings-display">10</span>개</span>
-      </button>
     </div>
   </section>
 
   <section id="study" class="screen">
     <header class="bar">
-      <button class="back" data-action="home" data-i18n="back">← 메인</button>
+      <button class="back" data-action="study-hub" data-i18n="back">← 메인</button>
       <span class="progress" id="study-progress">1 / 10</span>
     </header>
     <div class="card flashcard">
@@ -144,12 +163,12 @@
         <span class="value warn"><span id="result-wrong">0</span><span data-i18n="resultUnitCount" data-i18n-vars="" id="result-wrong-unit">개</span></span>
       </div>
     </div>
-    <button class="primary" data-action="home" data-i18n="main">메인으로</button>
+    <button class="primary" data-action="study-hub" data-i18n="main">메인으로</button>
   </section>
 
   <section id="review" class="screen">
     <header class="bar">
-      <button class="back" data-action="home" data-i18n="back">← 메인</button>
+      <button class="back" data-action="study-hub" data-i18n="back">← 메인</button>
       <h2 data-i18n="reviewTitle">오답 복습</h2>
     </header>
     <div class="review-actions">
@@ -161,7 +180,7 @@
 
   <section id="today" class="screen">
     <header class="bar">
-      <button class="back" data-action="home" data-i18n="back">← 메인</button>
+      <button class="back" data-action="study-hub" data-i18n="back">← 메인</button>
       <h2 data-i18n="todayTitle">오늘 학습한 단어</h2>
     </header>
     <div class="review-actions">
@@ -172,7 +191,7 @@
 
   <section id="studied" class="screen">
     <header class="bar">
-      <button class="back" data-action="home" data-i18n="back">← 메인</button>
+      <button class="back" data-action="study-hub" data-i18n="back">← 메인</button>
       <h2 data-i18n="studiedTitle">전체 학습한 단어</h2>
     </header>
     <div class="review-actions">
@@ -255,6 +274,123 @@
     <button id="save-settings" class="primary" data-i18n="settingsSave">저장</button>
   </section>
 
+  <section id="exam-list" class="screen">
+    <header class="bar">
+      <button class="back" data-action="home" data-i18n="back">← 메인</button>
+      <h2 data-i18n="examListTitle">모의시험</h2>
+    </header>
+    <p class="subtitle" data-i18n="examListSubtitle">시험을 선택하면 안내 화면이 나타납니다.</p>
+    <div id="exam-list-items" class="exam-list"></div>
+  </section>
+
+  <section id="exam-intro" class="screen">
+    <header class="bar">
+      <button class="back" data-action="exam-hub" data-i18n="back">← 메인</button>
+      <h2 id="exam-intro-title">HSK 5급 모의시험</h2>
+    </header>
+    <div class="exam-info-card">
+      <div class="exam-info-row">
+        <span class="exam-info-label" data-i18n="examTotalQuestions">전체 문항</span>
+        <span class="exam-info-value">100<span data-i18n="examUnitQuestions">문항</span></span>
+      </div>
+      <div class="exam-info-row">
+        <span class="exam-info-label" data-i18n="examEstimatedTime">예상 시간</span>
+        <span class="exam-info-value" data-i18n="examTimeValue">약 125분</span>
+      </div>
+      <div class="exam-info-row">
+        <span class="exam-info-label" data-i18n="examSections">구성</span>
+        <span class="exam-info-value" data-i18n="examSectionsValue">듣기 45 / 독해 45 / 쓰기 10</span>
+      </div>
+    </div>
+    <div class="exam-progress-card hidden" id="exam-progress-card">
+      <p data-i18n="examInProgressMsg">이전에 진행 중이던 시험이 있습니다.</p>
+      <div class="exam-progress-actions">
+        <button id="exam-resume" class="primary" data-i18n="examResume">이어하기</button>
+        <button id="exam-restart" class="danger" data-i18n="examRestart">새로 시작</button>
+      </div>
+    </div>
+    <div class="exam-audio-block">
+      <label class="setting-label" data-i18n="examAudioLabel">듣기 음성 (YouTube)</label>
+      <div class="exam-audio-row">
+        <input type="text" id="exam-audio-url"
+               data-i18n-attr-placeholder="examAudioPlaceholder"
+               placeholder="YouTube URL을 입력하세요" autocomplete="off">
+        <button id="exam-audio-open" data-i18n="examAudioOpen">열기</button>
+      </div>
+      <p class="hint" data-i18n="examAudioHint">시험 시작 후 듣기 화면에서도 열 수 있습니다.</p>
+    </div>
+    <button id="exam-start" class="primary big-btn" data-i18n="examStart">시험 시작</button>
+  </section>
+
+  <section id="exam-listening" class="screen exam-screen">
+    <header class="bar">
+      <button class="back" data-action="exam-exit" data-i18n="back">← 메인</button>
+      <span class="exam-section-label" data-i18n="examSecListening">듣기</span>
+      <span class="progress" id="exam-listening-progress">1 / 45</span>
+      <button class="exam-audio-btn" id="exam-listening-audio" type="button" data-i18n="examOpenAudio">음성</button>
+    </header>
+    <div class="exam-question-card" id="exam-listening-card"></div>
+    <div class="exam-nav">
+      <button id="exam-listening-prev" data-i18n="prev">← 이전</button>
+      <button id="exam-listening-next" class="primary" data-i18n="next">다음 →</button>
+    </div>
+  </section>
+
+  <section id="exam-reading" class="screen exam-screen">
+    <header class="bar">
+      <button class="back" data-action="exam-exit" data-i18n="back">← 메인</button>
+      <span class="exam-section-label" data-i18n="examSecReading">독해</span>
+      <span class="progress" id="exam-reading-progress">1 / 45</span>
+    </header>
+    <div class="exam-question-card" id="exam-reading-card"></div>
+    <div class="exam-nav">
+      <button id="exam-reading-prev" data-i18n="prev">← 이전</button>
+      <button id="exam-reading-next" class="primary" data-i18n="next">다음 →</button>
+    </div>
+  </section>
+
+  <section id="exam-writing" class="screen exam-screen">
+    <header class="bar">
+      <button class="back" data-action="exam-exit" data-i18n="back">← 메인</button>
+      <span class="exam-section-label" data-i18n="examSecWriting">쓰기</span>
+      <span class="progress" id="exam-writing-progress">1 / 10</span>
+    </header>
+    <div class="exam-question-card" id="exam-writing-card"></div>
+    <div class="exam-nav">
+      <button id="exam-writing-prev" data-i18n="prev">← 이전</button>
+      <button id="exam-writing-next" class="primary" data-i18n="next">다음 →</button>
+    </div>
+  </section>
+
+  <section id="exam-result" class="screen">
+    <header class="bar">
+      <button class="back" data-action="home" data-i18n="back">← 메인</button>
+      <h2 data-i18n="examResultTitle">시험 결과</h2>
+    </header>
+    <div class="exam-result-summary">
+      <div class="exam-result-row">
+        <span data-i18n="examSecListening">듣기</span>
+        <span class="exam-result-score"><span id="result-listening-correct">0</span> / <span id="result-listening-total">45</span></span>
+      </div>
+      <div class="exam-result-row">
+        <span data-i18n="examSecReading">독해</span>
+        <span class="exam-result-score"><span id="result-reading-correct">0</span> / <span id="result-reading-total">45</span></span>
+      </div>
+      <div class="exam-result-row">
+        <span data-i18n="examSecWriting">쓰기 (Part 1 자동채점)</span>
+        <span class="exam-result-score"><span id="result-writing-correct">0</span> / <span id="result-writing-total">8</span></span>
+      </div>
+      <div class="exam-result-total">
+        <span data-i18n="examResultObjective">객관식 합계</span>
+        <span class="exam-result-score"><span id="result-objective-correct">0</span> / <span id="result-objective-total">98</span></span>
+      </div>
+    </div>
+    <div class="exam-review-toggle">
+      <button id="exam-review-toggle" data-i18n="examReviewToggle">정답 보기</button>
+    </div>
+    <div id="exam-review" class="exam-review hidden"></div>
+  </section>
+
 </div>
 
 <!-- Custom confirm modal (replaces browser native confirm() for cleaner UI) -->
@@ -291,6 +427,7 @@
 <script src="examples.js"></script>
 <script src="examples_en.js"></script>
 <script src="examples_ja.js"></script>
+<script src="exam_h51008.js"></script>
 <script src="i18n.js"></script>
 <script src="app.js"></script>
 </body>
